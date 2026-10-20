@@ -1,0 +1,47 @@
+# Git metadata
+.git
+.gitignore
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+*firebase-service-account*.json
+
+# Python & testing cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.sqlite3
+*.sqlite3-journal
+
+# Node & Next.js cache
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs & temp artifacts
+logs/
+*.log
+storage/reports/*
+!storage/reports/.gitkeep
+test_reports/
+media/
+out_branding/
+*.pdf
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

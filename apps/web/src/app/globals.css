@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 199 89% 48%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 222 47% 8%; /* #0B1220 deep navy */
+  --foreground: 210 40% 96%; /* #F1F5F9 soft white */
+  --card: 217 45% 12%; /* #111C2E primary card */
+  --card-foreground: 210 40% 96%;
+  --primary: 199 89% 48%; /* #0284c7 brand blue */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 217 41% 15%; /* #172438 secondary surface */
+  --secondary-foreground: 210 40% 96%;
+  --muted: 217 41% 15%;
+  --muted-foreground: 215 16% 65%; /* #94A3B8 muted labels */
+  --accent: 217 41% 18%;
+  --accent-foreground: 210 40% 96%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 31% 22%; /* #263449 subtle slate border */
+  --input: 217 31% 22%;
+  --ring: 199 89% 48%;
+}
+
+body {
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Staggered entrance animations for hero elements */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-eyebrow {
+  animation: heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0ms both;
+}
+.animate-hero-h1 {
+  animation: heroFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
+}
+.animate-hero-desc {
+  animation: heroFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 170ms both;
+}
+.animate-hero-form {
+  animation: heroFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
+}
+.animate-hero-trust {
+  animation: heroFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 330ms both;
+}
+
+/* Gentle atmospheric ambient glow behind hero */
+@keyframes heroGlowPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.12;
+  }
+  50% {
+    transform: translate(-50%, -48%) scale(1.08);
+    opacity: 0.18;
+  }
+}
+.animate-hero-glow {
+  animation: heroGlowPulse 12s ease-in-out infinite;
+}
+
+/* Hero Typography: Controlled Two-Line Presentation */
+.hero-title {
+  font-size: clamp(36px, 8vw, 46px);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 641px) {
+  .hero-title {
+    font-size: clamp(48px, 5.5vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title {
+    font-size: clamp(64px, 5.4vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+  }
+}
+
+.hero-title-line {
+  display: block;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .hero-title-line {
+    white-space: normal;
+  }
+}
+
+.hero-title-accent {
+  color: #0284c7;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+.hero-title-accent::after,
+.hero-title-accent::before {
+  display: none !important;
+  content: none !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Lightweight scroll reveal utility with progressive enhancement */
+/* Default safe state: fully visible if JavaScript fails or hasn't executed */
+.reveal-on-scroll {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal-card {
+  opacity: 1;
+  transform: none;
+}
+
+/* Activated once JavaScript initializes IntersectionObserver */
+.js-reveal-ready .reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.js-reveal-ready .reveal-on-scroll.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered card entrances for grids */
+.js-reveal-ready .reveal-card {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.js-reveal-ready .revealed .reveal-card,
+.js-reveal-ready .reveal-card.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.js-reveal-ready .revealed .reveal-card:nth-child(1),
+.js-reveal-ready .reveal-card:nth-child(1).revealed { transition-delay: 0ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(2),
+.js-reveal-ready .reveal-card:nth-child(2).revealed { transition-delay: 80ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(3),
+.js-reveal-ready .reveal-card:nth-child(3).revealed { transition-delay: 160ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(4),
+.js-reveal-ready .reveal-card:nth-child(4).revealed { transition-delay: 240ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(5),
+.js-reveal-ready .reveal-card:nth-child(5).revealed { transition-delay: 320ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(6),
+.js-reveal-ready .reveal-card:nth-child(6).revealed { transition-delay: 360ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(7),
+.js-reveal-ready .reveal-card:nth-child(7).revealed { transition-delay: 400ms; }
+.js-reveal-ready .revealed .reveal-card:nth-child(8),
+.js-reveal-ready .reveal-card:nth-child(8).revealed { transition-delay: 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .animate-hero-eyebrow,
+  .animate-hero-h1,
+  .animate-hero-desc,
+  .animate-hero-form,
+  .animate-hero-trust,
+  .animate-hero-glow,
+  .reveal-on-scroll,
+  .reveal-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    transition-delay: 0ms !important;
+  }
+}

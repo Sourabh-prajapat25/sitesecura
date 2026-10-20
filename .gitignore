@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Local secrets and credentials
+/firebase-service-account.json
+
+# Environment Variables
+.env
+.env*.local
+.env.local
+.env.*
+!.env.example
+!.env.production.example
+
+# Build artifacts
+.next/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Storage
+storage/reports/*.pdf
+# Generated reports and local test databases
+/storage/reports/*
+/storage/test_reports/*
+/tests/out_branding/*
+/tests/*.sqlite3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Local test artifacts
+/test_score_layout.pdf
+
+# Application runtime data and generated reports
+/apps/api/storage/reports/
+/apps/api/scanly_backup.sql
+/apps/api/celerybeat-schedule*
+/apps/storage/branding/
+
+# Local test output
+/test_score_layout.pdf
