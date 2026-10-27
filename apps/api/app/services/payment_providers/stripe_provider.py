@@ -122,7 +122,12 @@ class StripePaymentProvider(PaymentProvider):
             logger.error(f"Stripe Checkout Session creation failed: {e}")
             raise
 
-    def create_customer_portal_session(self, organization: Organization, return_url: Optional[str] = None) -> str:
+    def create_customer_portal_session(
+        self,
+        organization: Organization,
+        return_url: Optional[str] = None,
+        subscription: Optional[Subscription] = None,
+    ) -> str:
         from app.services.billing_service import sanitize_return_url
         ret_url = sanitize_return_url(return_url, "/dashboard/billing")
 
@@ -131,8 +136,21 @@ class StripePaymentProvider(PaymentProvider):
 
         try:
             cust_id = None
-            if organization.subscription:
-                cust_id = organization.subscription.stripe_customer_id or organization.subscription.provider_customer_id
+            sub = subscription
+            if sub is None:
+                try:
+                    from sqlalchemy.orm import attributes
+                    state = attributes.instance_state(organization)
+                    if "subscription" in state.dict:
+                        sub = state.dict["subscription"]
+                except Exception:
+                    pass
+            if sub is None and hasattr(organization, "subscription") and not hasattr(organization, "_sa_instance_state"):
+                sub = organization.subscription
+
+            if sub:
+                cust_id = sub.stripe_customer_id or sub.provider_customer_id
+
             session = stripe.billing_portal.Session.create(
                 customer=cust_id,
                 return_url=ret_url,
@@ -162,12 +180,19 @@ class StripePaymentProvider(PaymentProvider):
         try:
             if cancel_at_period_end:
                 stripe.Subscription.modify(sub_id, cancel_at_period_end=True)
+                subscription.cancel_at_period_end = True
             else:
                 stripe.Subscription.delete(sub_id)
+                subscription.cancel_at_period_end = False
+                subscription.status = "canceled"
+                subscription.plan = "free"
             return True
         except Exception as e:
             logger.error(f"Failed to cancel Stripe subscription {sub_id}: {e}")
-            raise
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"error": {"code": "STRIPE_CANCELLATION_FAILED", "message": f"Could not cancel Stripe subscription: {str(e)}"}},
+            )
 
     def verify_webhook_signature(self, payload: bytes, signature_header: str) -> Dict[str, Any]:
         if settings.STRIPE_WEBHOOK_SECRET and not settings.STRIPE_WEBHOOK_SECRET.startswith("whsec_placeholder"):

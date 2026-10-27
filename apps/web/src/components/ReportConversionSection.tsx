@@ -45,7 +45,7 @@ export function ReportConversionSection({
     return (
       <section
         aria-label="Continuous Protection Upgrade"
-        className="rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 text-white p-8 sm:p-10 shadow-xl relative overflow-hidden"
+        className="rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 text-white p-5 sm:p-8 lg:p-10 shadow-xl relative overflow-hidden"
       >
         <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -108,7 +108,7 @@ export function ReportConversionSection({
   return (
     <section
       aria-label="Keep Your Website Protected"
-      className="rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 text-white p-8 sm:p-10 shadow-xl relative overflow-hidden"
+      className="rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 text-white p-5 sm:p-8 lg:p-10 shadow-xl relative overflow-hidden"
     >
       <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 

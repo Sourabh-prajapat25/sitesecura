@@ -172,6 +172,29 @@ class SubscriptionResponse(BaseModel):
     stripe_subscription_id: Optional[str] = None
 
 
+class PaymentTransactionItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    created_at: datetime
+    provider: str
+    provider_payment_id: str
+    provider_subscription_id: Optional[str] = None
+    amount: int
+    currency: str
+    status: str
+    plan: Optional[str] = None
+    billing_interval: Optional[str] = None
+    payment_method: Optional[str] = None
+    invoice_url: Optional[str] = None
+    receipt_url: Optional[str] = None
+
+
+class PaymentHistoryResponse(BaseModel):
+    items: List[PaymentTransactionItem]
+    total: int
+
+
 # ==========================================
 # Agency & Team Schemas
 # ==========================================

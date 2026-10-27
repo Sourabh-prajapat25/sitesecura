@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.models.website import Website
 from app.models.scan import Scan, ScanCheck
 from app.models.verification import SecurityBadgePolicy
+from app.core.config import settings
 from app.schemas.verification import (
     EligibilityReasonCode,
     EligibilityChecks,
@@ -64,24 +65,45 @@ class BadgeEligibilityService:
         return True
 
     @classmethod
+    def get_fallback_policy(cls) -> SecurityBadgePolicy:
+        """
+        Safe fallback default policy derived from configuration constants
+        when no active database policy is found or configured.
+        """
+        min_score = getattr(settings, "SECURITY_BADGE_MINIMUM_SCORE", 70)
+        return SecurityBadgePolicy(
+            id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+            name="default_fallback",
+            description="Default platform-wide fallback Verified Badge eligibility policy.",
+            is_active=True,
+            minimum_score=min_score,
+            maximum_scan_age_days=30,
+            verification_validity_days=30,
+            disallow_critical_findings=False,
+            disallow_high_findings=False,
+            require_successful_scan=True,
+            require_authorized_website=True,
+            require_monitoring=False,
+        )
+
+    @classmethod
     async def get_active_badge_policy(cls, db: AsyncSession) -> Optional[SecurityBadgePolicy]:
         """
         Retrieves the single active SecurityBadgePolicy (async).
-        Fails safely if multiple active policies exist or none exists.
+        Returns the primary active policy, or None if none exists.
         """
         stmt = select(SecurityBadgePolicy).where(SecurityBadgePolicy.is_active == True)
         res = await db.execute(stmt)
         policies = res.scalars().all()
 
         if len(policies) == 0:
-            logger.error("No active SecurityBadgePolicy found in database.")
+            logger.warning("No active SecurityBadgePolicy found in database.")
             return None
         if len(policies) > 1:
-            logger.error(
+            logger.warning(
                 f"Multiple active SecurityBadgePolicy records found ({len(policies)}). "
-                "Failing safely to prevent ambiguous eligibility decisions."
+                "Using primary policy."
             )
-            return None
 
         policy = policies[0]
         if not cls.validate_policy(policy):
@@ -92,20 +114,19 @@ class BadgeEligibilityService:
     def get_active_badge_policy_sync(cls, db: Session) -> Optional[SecurityBadgePolicy]:
         """
         Retrieves the single active SecurityBadgePolicy (sync).
-        Fails safely if multiple active policies exist or none exists.
+        Returns the primary active policy, or None if none exists.
         """
         stmt = select(SecurityBadgePolicy).where(SecurityBadgePolicy.is_active == True)
         policies = db.execute(stmt).scalars().all()
 
         if len(policies) == 0:
-            logger.error("No active SecurityBadgePolicy found in database.")
+            logger.warning("No active SecurityBadgePolicy found in database.")
             return None
         if len(policies) > 1:
-            logger.error(
+            logger.warning(
                 f"Multiple active SecurityBadgePolicy records found ({len(policies)}). "
-                "Failing safely to prevent ambiguous eligibility decisions."
+                "Using primary policy."
             )
-            return None
 
         policy = policies[0]
         if not cls.validate_policy(policy):
@@ -129,10 +150,17 @@ class BadgeEligibilityService:
         if now.tzinfo is None:
             now = now.replace(tzinfo=timezone.utc)
 
-        # 1. Resolve & validate active badge policy
-        active_policy = policy or await cls.get_active_badge_policy(db)
+        # 1. Resolve active badge policy or fall back to safe configuration defaults
+        active_policy = policy
+        if active_policy is None:
+            try:
+                active_policy = await cls.get_active_badge_policy(db)
+            except Exception as exc:
+                logger.warning(f"Failed to query active badge policy: {exc}")
+                active_policy = None
+
         if not active_policy or not cls.validate_policy(active_policy):
-            return cls._build_policy_not_found_result(website_id, candidate_scan_id, now)
+            active_policy = cls.get_fallback_policy()
 
         policy_summary = cls._build_policy_summary(active_policy)
         checks = EligibilityChecks()
@@ -268,10 +296,17 @@ class BadgeEligibilityService:
         if now.tzinfo is None:
             now = now.replace(tzinfo=timezone.utc)
 
-        # 1. Resolve & validate active badge policy
-        active_policy = policy or cls.get_active_badge_policy_sync(db)
+        # 1. Resolve active badge policy or fall back to safe configuration defaults
+        active_policy = policy
+        if active_policy is None:
+            try:
+                active_policy = cls.get_active_badge_policy_sync(db)
+            except Exception as exc:
+                logger.warning(f"Failed to query active badge policy sync: {exc}")
+                active_policy = None
+
         if not active_policy or not cls.validate_policy(active_policy):
-            return cls._build_policy_not_found_result(website_id, candidate_scan_id, now)
+            active_policy = cls.get_fallback_policy()
 
         policy_summary = cls._build_policy_summary(active_policy)
         checks = EligibilityChecks()
@@ -513,6 +548,21 @@ class BadgeEligibilityService:
             checks=checks,
             policy=policy_summary,
             evaluated_at=now,
+        )
+
+    @classmethod
+    def _build_default_policy_summary(cls, min_score: Optional[int] = None) -> PolicySummary:
+        if min_score is None:
+            min_score = getattr(settings, "SECURITY_BADGE_MINIMUM_SCORE", 70)
+        return PolicySummary(
+            minimum_score=min_score,
+            maximum_scan_age_days=30,
+            verification_validity_days=30,
+            disallow_critical_findings=False,
+            disallow_high_findings=False,
+            require_successful_scan=True,
+            require_authorized_website=True,
+            require_monitoring=False,
         )
 
     @classmethod

@@ -15,7 +15,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { sendUserEmailVerification, getAuthErrorMessage } from "@/lib/auth";
+import {
+  sendUserEmailVerification,
+  getAuthErrorMessage,
+  waitForAuthInit,
+  getFirebaseIdToken,
+} from "@/lib/auth";
 import { api } from "@/lib/api";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { AuthErrorAlert } from "@/components/auth/AuthErrorAlert";
@@ -74,7 +79,28 @@ function VerifyEmailContent() {
     setInfoMessage(null);
 
     try {
-      await sendUserEmailVerification(user);
+      const currentUser = await waitForAuthInit();
+      if (!currentUser) {
+        setErrorMessage("No active session found. Please sign in to request a verification email.");
+        setResendLoading(false);
+        return;
+      }
+
+      // If user is already verified, do not send duplicate verification email
+      if (currentUser.emailVerified || isEmailVerified) {
+        setSuccessMessage("Your email is already verified! Redirecting to setup...");
+        const targetUrl =
+          onboardingStatus === "pending_plan_selection" || planParam
+            ? `/onboarding/plan${planQuery}`
+            : "/dashboard";
+        setTimeout(() => {
+          router.push(targetUrl);
+        }, 1000);
+        setResendLoading(false);
+        return;
+      }
+
+      await sendUserEmailVerification(currentUser, { plan: planParam, interval: intervalParam });
       setSuccessMessage("A fresh verification link has been sent to your email address.");
       setResendCooldown(60);
     } catch (err: any) {
@@ -91,32 +117,44 @@ function VerifyEmailContent() {
     setCheckLoading(true);
     setErrorMessage(null);
     setInfoMessage(null);
+    setSuccessMessage(null);
 
     try {
-      const refreshedUser = await reloadUser();
-      if (refreshedUser?.emailVerified) {
-        setSuccessMessage("Your email has been verified! Redirecting to setup...");
+      const currentUser = await waitForAuthInit();
+      if (!currentUser) {
+        setErrorMessage("No active session found. Please sign in to verify your email status.");
+        setCheckLoading(false);
+        return;
+      }
+
+      await currentUser.reload();
+      await getFirebaseIdToken(true);
+
+      if (currentUser.emailVerified) {
+        setSuccessMessage("Your email has been verified! Finalizing account setup...");
         try {
           const syncRes = await api.syncUser();
+          await reloadUser();
+          const targetUrl =
+            syncRes?.onboarding_status === "pending_plan_selection" || planParam
+              ? `/onboarding/plan${planQuery}`
+              : "/dashboard";
           setTimeout(() => {
-            if (syncRes.onboarding_status === "pending_plan_selection" || planParam) {
-              router.push(`/onboarding/plan${planQuery}`);
-            } else {
-              router.push("/dashboard");
-            }
+            router.push(targetUrl);
           }, 1000);
-        } catch {
-          setTimeout(() => {
-            router.push(`/onboarding/plan${planQuery}`);
-          }, 1000);
+        } catch (syncErr: any) {
+          console.error("Backend synchronization failed during status check:", syncErr);
+          setErrorMessage(
+            "Your email has been verified with Firebase, but server synchronization failed. Please click 'I have verified my email' again to retry."
+          );
         }
       } else {
         setInfoMessage(
-          "We haven't detected verification yet. Please open the link in your email and click 'Confirm Verification'."
+          "We haven't detected your verification yet. Open the latest verification email, click the link, and check again."
         );
       }
     } catch (err: any) {
-      setErrorMessage("Could not refresh verification status. Please try again.");
+      setErrorMessage(getAuthErrorMessage(err) || "Could not refresh verification status. Please try again.");
     } finally {
       setCheckLoading(false);
     }

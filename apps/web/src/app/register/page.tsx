@@ -92,7 +92,7 @@ function RegisterForm() {
 
       // 2. Trigger Firebase email verification link
       try {
-        await sendUserEmailVerification(cred.user);
+        await sendUserEmailVerification(cred.user, { plan: planParam, interval: intervalParam });
       } catch (emailErr) {
         console.warn("Notice: Initial email verification trigger note:", emailErr);
       }

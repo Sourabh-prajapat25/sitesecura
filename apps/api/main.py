@@ -135,6 +135,12 @@ def root():
     return {"message": "Welcome to Scanly API. Visit /docs for OpenAPI documentation."}
 
 
+@app.get("/health", status_code=status.HTTP_200_OK, tags=["Health"])
+def root_health():
+    """Basic root health check endpoint."""
+    return {"status": "ok", "service": "Scanly API", "environment": settings.ENVIRONMENT}
+
+
 # Dynamic SiteSecura Verified Badge SVG Root Endpoint (VB-4)
 @app.get("/badges/{public_token}.svg", include_in_schema=False)
 async def get_root_badge_svg(

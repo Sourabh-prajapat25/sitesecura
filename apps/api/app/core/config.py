@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     SCANNER_MAX_RESPONSE_BYTES: int = 1048576
     ENABLE_NMAP: bool = False
 
+    # Security Badge Settings
+    SECURITY_BADGE_MINIMUM_SCORE: int = 70
+
     # Firebase Authentication
     FIREBASE_PROJECT_ID: str = "scanly-user"
     FIREBASE_AUTH_DOMAIN: Optional[str] = "scanly-user.firebaseapp.com"

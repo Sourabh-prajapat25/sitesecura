@@ -132,36 +132,92 @@ def create_checkout_session(
     }
 
 
-def create_customer_portal_session(organization: Organization, return_url: Optional[str] = None) -> str:
+def create_customer_portal_session(
+    organization: Organization,
+    return_url: Optional[str] = None,
+    subscription: Optional[Subscription] = None,
+) -> str:
     """
     Generates a billing management session.
     Routes Stripe customers to Stripe Billing Portal and Razorpay customers to in-app billing.
+    Safely resolves subscription without triggering MissingGreenlet.
     """
+    sub = subscription
+    if sub is None:
+        try:
+            from sqlalchemy.orm import attributes
+            state = attributes.instance_state(organization)
+            if "subscription" in state.dict:
+                sub = state.dict["subscription"]
+        except Exception:
+            pass
+
+    if sub is None and hasattr(organization, "subscription") and not hasattr(organization, "_sa_instance_state"):
+        sub = organization.subscription
+
     prov = "stripe"
-    if organization.subscription and organization.subscription.provider == "razorpay":
+    if sub and getattr(sub, "provider", None) == "razorpay":
         prov = "razorpay"
 
     provider_instance = get_payment_provider(prov)
-    return provider_instance.create_customer_portal_session(organization, return_url)
+    return provider_instance.create_customer_portal_session(organization, return_url, subscription=sub)
 
 
 def cancel_subscription_service(
     organization: Organization,
     cancel_at_period_end: bool = True,
     sync_db: Optional[Session] = None,
+    subscription: Optional[Subscription] = None,
 ) -> Dict[str, Any]:
     """
     Cancels the organization's subscription at the provider gateway and updates local record.
+    Safely handles both async and sync execution contexts without triggering MissingGreenlet.
     """
-    sub = organization.subscription
+    sub = subscription
+    if sub is None:
+        try:
+            from sqlalchemy.orm import attributes
+            state = attributes.instance_state(organization)
+            if "subscription" in state.dict:
+                sub = state.dict["subscription"]
+        except Exception:
+            pass
+
+    if sub is None and hasattr(organization, "subscription") and not hasattr(organization, "_sa_instance_state"):
+        # Plain/mock Python object (e.g., in unit tests)
+        sub = organization.subscription
+
+    if sub is None and sync_db is not None:
+        stmt = select(Subscription).where(Subscription.organization_id == organization.id)
+        sub = sync_db.execute(stmt).scalar_one_or_none()
+
     if not sub or sub.plan == "free" or sub.status not in ("active", "trialing", "past_due"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": {"code": "NO_ACTIVE_SUBSCRIPTION", "message": "Organization has no active paid subscription to cancel."}},
         )
 
+    # Idempotency check: Already canceled or already scheduled
+    if sub.status == "canceled":
+        return {
+            "status": "canceled",
+            "cancel_at_period_end": False,
+            "message": "Subscription is already canceled.",
+        }
+    if cancel_at_period_end and sub.cancel_at_period_end:
+        return {
+            "status": "pending_cancellation",
+            "cancel_at_period_end": True,
+            "message": "Subscription cancellation is already scheduled for the end of the billing period.",
+        }
+
     provider_instance = get_payment_provider(sub.provider)
     provider_instance.cancel_subscription(sub, cancel_at_period_end)
+
+    sub.cancel_at_period_end = cancel_at_period_end
+    if not cancel_at_period_end:
+        sub.status = "canceled"
+        sub.plan = "free"
 
     if sync_db:
         record_audit_event_sync(

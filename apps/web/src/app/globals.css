@@ -43,7 +43,10 @@
   --ring: 199 89% 48%;
 }
 
+html,
 body {
+  max-width: 100%;
+  overflow-x: clip;
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   font-feature-settings: "rlig" 1, "calt" 1;
@@ -103,10 +106,12 @@ body {
 
 /* Hero Typography: Controlled Two-Line Presentation */
 .hero-title {
-  font-size: clamp(36px, 8vw, 46px);
+  font-size: clamp(28px, 7.5vw, 44px);
   font-weight: 800;
-  line-height: 1.04;
+  line-height: 1.08;
   letter-spacing: -0.025em;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 @media (min-width: 641px) {

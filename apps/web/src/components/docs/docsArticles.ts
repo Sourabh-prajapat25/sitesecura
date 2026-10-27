@@ -960,7 +960,7 @@ To maintain organizational security and enforce the principle of least privilege
 
 | Workspace Role | Permissions and Capabilities | Recommended Assignment |
 | :--- | :--- | :--- |
-| **Owner** | Full workspace authority: manage Stripe billing, invite/remove team members, delete workspace, configure white-label branding, full domain access. | Agency Founder / Lead Partner |
+| **Owner** | Full workspace authority: manage subscription & billing, invite/remove team members, delete workspace, configure white-label branding, full domain access. | Agency Founder / Lead Partner |
 | **Admin** | Add/verify client domains, initiate and schedule scans, edit white-label settings, manage client groups. | Senior Technical Director / DevOps Lead |
 | **Member** | Trigger ad-hoc scans on existing domains, view reports, download PDF audits, re-run verifications. | Web Developers / QA Engineers |
 | **Viewer** | Read-only access to scan reports, historical score charts, and findings. Cannot trigger scans or alter configuration. | Account Managers / Client Representatives |

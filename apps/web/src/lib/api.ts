@@ -26,6 +26,8 @@ import {
   CheckoutSessionResponse,
   VerifyPaymentPayload,
   VerifyPaymentResult,
+  PaymentTransactionItem,
+  PaymentHistoryResponse,
   DnsLookupRequest,
   DnsLookupResponse,
   HttpStatusCheckRequest,
@@ -124,8 +126,12 @@ async function fetchWithAuth(
       headers,
     });
   } catch (networkErr: any) {
+    if (networkErr?.name === "AbortError") {
+      throw new Error("Request was cancelled.");
+    }
+    const targetUrl = API_BASE.replace("/api/v1", "");
     throw new Error(
-      "Unable to connect to the SiteSecura API server. Please ensure the backend is running on http://127.0.0.1:8000."
+      `Unable to connect to the SiteSecura API server. Please ensure the backend is running on ${targetUrl}.`
     );
   }
 
@@ -145,23 +151,28 @@ async function fetchWithAuth(
       errorData = { error: { message: response.statusText } };
     }
 
+    const serverMessage =
+      errorData?.error?.message ||
+      errorData?.detail?.error?.message ||
+      errorData?.detail?.message ||
+      (typeof errorData?.detail === "string" ? errorData.detail : null);
+
     if (response.status === 429) {
       throw new Error(
-        "Rate limit exceeded (maximum 3 free scans per 24 hours for anonymous visitors). Please create a free account or upgrade for more scans."
+        serverMessage ||
+          "Rate limit exceeded (maximum 3 free scans per 24 hours for anonymous visitors). Please create a free account or upgrade for more scans."
       );
     }
 
     if (response.status === 500) {
       throw new Error(
-        "A server error occurred while processing the request. Please try again in a moment."
+        serverMessage ||
+          "A server error occurred while processing the request. Please try again in a moment."
       );
     }
 
     const message =
-      errorData?.error?.message ||
-      errorData?.detail?.error?.message ||
-      errorData?.detail?.message ||
-      (typeof errorData?.detail === "string" ? errorData.detail : null) ||
+      serverMessage ||
       errorData?.error ||
       `Request failed with status ${response.status}`;
 
@@ -192,8 +203,12 @@ async function fetchPublic(endpoint: string, options: RequestInit = {}): Promise
       headers,
     });
   } catch (networkErr: any) {
+    if (networkErr?.name === "AbortError") {
+      throw new Error("Request was cancelled.");
+    }
+    const targetUrl = API_BASE.replace("/api/v1", "");
     throw new Error(
-      "Unable to connect to the SiteSecura API server. Please ensure the backend is running on http://127.0.0.1:8000."
+      `Unable to connect to the SiteSecura API server. Please ensure the backend is running on ${targetUrl}.`
     );
   }
 
@@ -205,11 +220,14 @@ async function fetchPublic(endpoint: string, options: RequestInit = {}): Promise
       errorData = { error: { message: response.statusText } };
     }
 
-    const message =
+    const serverMessage =
       errorData?.error?.message ||
       errorData?.detail?.error?.message ||
       errorData?.detail?.message ||
-      (typeof errorData?.detail === "string" ? errorData.detail : null) ||
+      (typeof errorData?.detail === "string" ? errorData.detail : null);
+
+    const message =
+      serverMessage ||
       errorData?.error ||
       `Request failed with status ${response.status}`;
 
@@ -647,6 +665,13 @@ export const api = {
     sessionId: string
   ): Promise<SessionStatusResponse> => {
     return fetchWithAuth(`/billing/session-status?session_id=${encodeURIComponent(sessionId)}`);
+  },
+
+  getPaymentHistory: async (
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<PaymentHistoryResponse> => {
+    return fetchWithAuth(`/billing/history?limit=${limit}&offset=${offset}`);
   },
 
   // Onboarding & Plan Selection (Protected)

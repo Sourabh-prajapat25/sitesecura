@@ -1422,6 +1422,27 @@ export interface SubscriptionInfo {
   stripe_subscription_id?: string | null;
 }
 
+export interface PaymentTransactionItem {
+  id: string;
+  created_at: string;
+  provider: "stripe" | "razorpay" | string;
+  provider_payment_id: string;
+  provider_subscription_id?: string | null;
+  amount: number;
+  currency: "inr" | "usd" | string;
+  status: "succeeded" | "failed" | "refunded" | string;
+  plan?: string | null;
+  billing_interval?: "month" | "year" | string | null;
+  payment_method?: string | null;
+  invoice_url?: string | null;
+  receipt_url?: string | null;
+}
+
+export interface PaymentHistoryResponse {
+  items: PaymentTransactionItem[];
+  total: number;
+}
+
 export interface MediaAsset {
   id: string;
   filename: string;

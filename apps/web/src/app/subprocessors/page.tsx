@@ -111,6 +111,15 @@ export default function SubprocessorsPage() {
               </tr>
               <tr className="hover:bg-slate-50/50">
                 <td className="p-3 sm:p-4 font-bold text-slate-900">
+                  Razorpay<br />
+                  <span className="text-xs font-normal text-slate-500">Razorpay Software Private Limited</span>
+                </td>
+                <td className="p-3 sm:p-4">Subscription billing, UPI/card processing, and PCI-compliant payment gateway (INR transactions)</td>
+                <td className="p-3 sm:p-4">Customer ID, subscription ID, billing plan, payment status (card/UPI credentials handled directly by Razorpay)</td>
+                <td className="p-3 sm:p-4">Payment Processor</td>
+              </tr>
+              <tr className="hover:bg-slate-50/50">
+                <td className="p-3 sm:p-4 font-bold text-slate-900">
                   Cloudflare<br />
                   <span className="text-xs font-normal text-slate-500">Cloudflare, Inc.</span>
                 </td>
@@ -171,12 +180,12 @@ export default function SubprocessorsPage() {
           4. Payment Processing Services
         </h2>
         <p>
-          Subscription billing and checkout sessions are operated via Stripe. Stripe acts as an
-          independent data controller for payment card handling under PCI-DSS Level 1 certification.
+          Subscription billing and checkout sessions are operated via Stripe (for USD transactions) and Razorpay (for INR transactions). Both providers act as
+          independent data controllers for payment handling under PCI-DSS Level 1 certification.
         </p>
         <p>
-          SiteSecura maintains only Stripe customer tokens and subscription status references to
-          manage plan entitlements; raw payment card numbers never traverse or reside on SiteSecura
+          SiteSecura maintains only provider customer tokens and subscription status references to
+          manage plan entitlements; raw payment card numbers and UPI credentials never traverse or reside on SiteSecura
           servers.
         </p>
       </section>

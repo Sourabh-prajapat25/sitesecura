@@ -670,6 +670,7 @@ export default function TeamPage() {
       <UpgradeModal
         isOpen={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}
+        contextType="team"
         featureName="Team Members & Collaboration"
         recommendedPlan="pro"
       />

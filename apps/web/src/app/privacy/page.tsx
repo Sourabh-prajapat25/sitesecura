@@ -95,8 +95,8 @@ export default function PrivacyPage() {
           <div>
             <h3 className="text-base font-bold text-slate-900">Billing Information</h3>
             <p className="text-slate-600 text-sm">
-              Subscription payments are processed securely through Stripe. We store the Stripe customer
-              identifier, subscription identifier, plan tier, billing cycle dates, and payment status.
+              Subscription payments are processed securely through authorized payment gateways (Stripe and Razorpay). We store the customer
+              identifier, subscription identifier, payment provider, plan tier, billing cycle dates, and payment status.
               SiteSecura never collects or stores raw credit or debit card numbers in its application database.
             </p>
           </div>
@@ -187,7 +187,7 @@ export default function PrivacyPage() {
         </p>
         <ul className="list-disc pl-6 space-y-1 text-slate-600">
           <li><strong>Firebase Authentication (Google):</strong> Identity verification and session tokens;</li>
-          <li><strong>Stripe:</strong> Payment processing and PCI-compliant transaction management;</li>
+          <li><strong>Stripe &amp; Razorpay:</strong> Payment processing and PCI-compliant transaction management;</li>
           <li><strong>Cloudflare:</strong> DNS resolution, CDN acceleration, and DDoS mitigation;</li>
           <li><strong>Transactional Email Services:</strong> Automated notification dispatch; and</li>
           <li><strong>Cloud Infrastructure Providers:</strong> Secure database storage and task queue execution.</li>

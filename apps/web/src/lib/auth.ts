@@ -67,11 +67,20 @@ export async function resetUserPassword(email: string): Promise<void> {
 
 /**
  * Sends a Firebase Email Verification link to the specified or currently active user.
+ * Preserves plan selection intent if provided, and safely skips sending if already verified.
  */
-export async function sendUserEmailVerification(user?: User | null): Promise<void> {
+export async function sendUserEmailVerification(
+  user?: User | null,
+  continueParams?: { plan?: string | null; interval?: string | null }
+): Promise<void> {
   const targetUser = user || auth.currentUser;
   if (!targetUser) {
     throw new Error("No active user session found to send verification email.");
+  }
+
+  // Do not send verification messages if user's email is already verified
+  if (targetUser.emailVerified) {
+    return;
   }
 
   const appUrl =
@@ -79,8 +88,16 @@ export async function sendUserEmailVerification(user?: User | null): Promise<voi
       ? window.location.origin
       : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+  let continueUrl = `${appUrl}/auth/action?mode=verifyEmail`;
+  if (continueParams?.plan) {
+    continueUrl += `&plan=${encodeURIComponent(continueParams.plan)}`;
+    if (continueParams?.interval) {
+      continueUrl += `&interval=${encodeURIComponent(continueParams.interval)}`;
+    }
+  }
+
   const actionCodeSettings: ActionCodeSettings = {
-    url: `${appUrl}/auth/action?mode=verifyEmail`,
+    url: continueUrl,
     handleCodeInApp: true,
   };
 
@@ -89,11 +106,13 @@ export async function sendUserEmailVerification(user?: User | null): Promise<voi
 
 /**
  * Applies a Firebase action code to verify the user's email address.
+ * Automatically reloads the current user session and refreshes ID token claims.
  */
 export async function verifyEmailActionCode(oobCode: string): Promise<void> {
   await applyActionCode(auth, oobCode);
   if (auth.currentUser) {
     await auth.currentUser.reload();
+    await getFirebaseIdToken(true);
   }
 }
 
@@ -106,10 +125,12 @@ export async function checkActionCodeValidity(oobCode: string) {
 
 /**
  * Reloads the current user profile from Firebase to refresh claims and verification status.
+ * Forces token refresh so downstream authenticated requests receive the latest email_verified claim.
  */
 export async function reloadCurrentUser(): Promise<User | null> {
   if (auth.currentUser) {
     await auth.currentUser.reload();
+    await getFirebaseIdToken(true);
     return auth.currentUser;
   }
   return null;

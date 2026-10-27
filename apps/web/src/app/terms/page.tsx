@@ -378,7 +378,7 @@ export default function TermsPage() {
         </p>
         <ul className="list-disc pl-6 space-y-1 text-slate-600">
           <li><strong>Firebase Authentication:</strong> User authentication and identity verification;</li>
-          <li><strong>Stripe:</strong> Payment processing and subscription management;</li>
+          <li><strong>Stripe &amp; Razorpay:</strong> Payment processing and subscription management;</li>
           <li><strong>Cloudflare:</strong> Reverse proxy, CDN, and DDoS mitigation;</li>
           <li><strong>Transactional Email Providers:</strong> Dispatch of security alerts and system emails; and</li>
           <li><strong>Infrastructure & Hosting Providers:</strong> Secure application hosting and database services.</li>
@@ -400,7 +400,7 @@ export default function TermsPage() {
           with applicable law.
         </p>
         <p>
-          Payments are securely processed by Stripe. SiteSecura does not store raw credit card or
+          Payments are securely processed by authorized payment providers (Stripe and Razorpay). SiteSecura does not store raw credit card or
           debit card numbers in its application databases.
         </p>
       </section>
@@ -409,7 +409,7 @@ export default function TermsPage() {
       <section id="cancellation" className="space-y-3 pt-6 border-t border-slate-100">
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900">14. Cancellation</h2>
         <p>
-          You may cancel your subscription at any time through the billing dashboard or Stripe
+          You may cancel your subscription at any time through the billing dashboard or payment gateway
           customer portal. Unless otherwise stated:
         </p>
         <ul className="list-disc pl-6 space-y-1 text-slate-600">

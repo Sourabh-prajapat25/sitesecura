@@ -28,7 +28,7 @@ export default function SystemStatusPage() {
     { name: "Background Celery Task Workers", status: "Operational", uptime: "99.95%" },
     { name: "PostgreSQL Database Cluster", status: dbStatus === "operational" ? "Operational" : "Degraded", uptime: "99.99%" },
     { name: "PDF Report Generation Engine", status: "Operational", uptime: "100.0%" },
-    { name: "Stripe Webhook Event Processing", status: "Operational", uptime: "99.99%" },
+    { name: "Payment & Webhook Processing (Stripe & Razorpay)", status: "Operational", uptime: "99.99%" },
   ];
 
   return (

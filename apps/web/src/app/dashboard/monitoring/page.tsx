@@ -453,6 +453,7 @@ export default function MonitoringPage() {
       <UpgradeModal
         isOpen={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}
+        contextType="monitoring"
         featureName="Continuous Automated Monitoring"
       />
     </DashboardLayout>

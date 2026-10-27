@@ -48,7 +48,7 @@ export default function RefundsPage() {
 
       <LegalCallout variant="info">
         <strong>Self-Serve Cancellation:</strong> You can cancel your paid subscription at any time
-        directly from your SiteSecura dashboard billing settings or through the secure Stripe customer portal.
+        directly from your SiteSecura dashboard billing settings or through the secure payment customer portal.
       </LegalCallout>
 
       {/* SECTION 1 */}
@@ -62,7 +62,7 @@ export default function RefundsPage() {
         </p>
         <ol className="list-decimal pl-6 space-y-1.5 text-slate-600">
           <li>Log into your account and navigate to <strong>Dashboard → Settings → Billing</strong>;</li>
-          <li>Click <strong>Manage Subscription</strong> to open the secure Stripe customer billing portal; and</li>
+          <li>Click <strong>Manage Subscription</strong> or <strong>Cancel Subscription</strong> within your billing settings; and</li>
           <li>Select <strong>Cancel Subscription</strong> and confirm your request.</li>
         </ol>
         <p>

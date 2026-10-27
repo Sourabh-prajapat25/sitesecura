@@ -80,7 +80,7 @@ const CATEGORIES: SupportCategory[] = [
     icon: CreditCard,
     tag: "Account Billing",
     iconColor: "text-indigo-600 bg-indigo-50 border-indigo-100",
-    keywords: ["billing", "subscription", "stripe", "invoices", "pricing", "plans", "payment", "receipts"],
+    keywords: ["billing", "subscription", "stripe", "razorpay", "invoices", "pricing", "plans", "payment", "receipts"],
   },
   {
     id: "websites",

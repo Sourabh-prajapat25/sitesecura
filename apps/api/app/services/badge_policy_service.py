@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.verification import SecurityBadgePolicy, SecurityVerification
 from app.schemas.verification import BadgePolicyUpdate, BadgePolicyResponse
+from app.core.config import settings
 from app.services.audit_service import record_audit_event
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class BadgePolicyService:
             name="default",
             description="Default platform-wide SiteSecura Verified Badge eligibility policy.",
             is_active=True,
-            minimum_score=70,
+            minimum_score=getattr(settings, "SECURITY_BADGE_MINIMUM_SCORE", 70),
             maximum_scan_age_days=30,
             verification_validity_days=30,
             disallow_critical_findings=True,

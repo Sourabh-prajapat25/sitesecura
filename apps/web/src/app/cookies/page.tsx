@@ -116,7 +116,7 @@ export default function CookiePolicyPage() {
         </p>
         <ul className="list-disc pl-6 space-y-1 text-slate-600">
           <li><strong>Firebase Authentication (Google):</strong> Verifies secure session tokens and multi-factor authentication;</li>
-          <li><strong>Stripe:</strong> Processes checkout interactions and performs fraud-detection checks during subscription checkout; and</li>
+          <li><strong>Stripe &amp; Razorpay:</strong> Process checkout interactions and perform fraud-detection checks during subscription checkout; and</li>
           <li><strong>Cloudflare:</strong> Manages web application firewall protection and rate-limiting enforcement.</li>
         </ul>
         <p>

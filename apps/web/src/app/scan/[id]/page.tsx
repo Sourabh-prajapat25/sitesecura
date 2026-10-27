@@ -502,11 +502,11 @@ export default function ScanResultPage() {
         {/* ========================================================================= */}
         <section
           aria-label="Security Assessment Report Header"
-          className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs"
+          className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-200/90 shadow-xs"
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="space-y-2 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Scan Complete</span>
@@ -515,9 +515,9 @@ export default function ScanResultPage() {
                 <span className="text-xs text-slate-500 font-medium">Evaluation date: {scanDate}</span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 min-w-0">
                 <Globe className="w-6 h-6 text-sky-500 shrink-0 hidden sm:inline" />
-                <span>{targetDomain}</span>
+                <span className="break-all">{targetDomain}</span>
               </h1>
 
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-0.5">
@@ -533,10 +533,10 @@ export default function ScanResultPage() {
             </div>
 
             {/* Clean, Entitlement-Aware Header Actions */}
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <div className="flex flex-col xs:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 w-full md:w-auto shrink-0">
               <Link
                 href="/#scan-hero"
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs"
+                className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs text-center"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
                 <span>Scan Again</span>
@@ -546,7 +546,7 @@ export default function ScanResultPage() {
                 type="button"
                 onClick={handleExportPdf}
                 disabled={downloadingPdf}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors disabled:opacity-50 shadow-2xs"
+                className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors disabled:opacity-50 shadow-2xs text-center cursor-pointer"
               >
                 {downloadingPdf ? (
                   <>
@@ -565,7 +565,7 @@ export default function ScanResultPage() {
               {isAuthenticated && (
                 <Link
                   href={scan?.website_id ? `/dashboard/websites/${scan.website_id}` : "/dashboard"}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-2xs"
+                  className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-2xs text-center"
                 >
                   <span>Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -605,10 +605,10 @@ export default function ScanResultPage() {
                     Postural Status: <strong className="text-slate-800 capitalize">{scan?.risk_level}</strong>
                   </span>
                 </div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
-                  Security Assessment for {targetDomain}
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug break-words">
+                  Security Assessment for <span className="break-all">{targetDomain}</span>
                 </h2>
-                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200/80 break-words">
                   {securitySummary}
                 </p>
               </div>
@@ -682,9 +682,11 @@ export default function ScanResultPage() {
                     return (
                       <div
                         key={catKey}
-                        className="p-3 bg-white rounded-xl border border-slate-200/90 space-y-1 shadow-2xs"
+                        className={`p-3 bg-white rounded-xl border border-slate-200/90 space-y-1 shadow-2xs min-w-0 ${
+                          catKey === "server_hygiene" ? "col-span-2 sm:col-span-1" : ""
+                        }`}
                       >
-                        <span className="font-bold text-slate-800 block truncate">
+                        <span className="font-bold text-slate-800 block text-xs truncate">
                           {CATEGORY_NAMES[catKey]}
                         </span>
                         <div className="font-mono font-black text-sm text-slate-900">
@@ -723,7 +725,7 @@ export default function ScanResultPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {topActionableChecks.map((item) => (
                 <div
                   key={item.id}
@@ -733,13 +735,13 @@ export default function ScanResultPage() {
                     <div className="flex items-center justify-between gap-2">
                       <SeverityBadge status={item.status} severity={item.severity} />
                       {item.score_impact < 0 && (
-                        <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 font-mono">
+                        <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 font-mono shrink-0">
                           {item.score_impact} pts
                         </span>
                       )}
                     </div>
 
-                    <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-1">
+                    <h3 className="text-sm font-bold text-slate-900 leading-snug break-words">
                       {item.title}
                     </h3>
 
@@ -835,7 +837,7 @@ export default function ScanResultPage() {
         <section
           id="security-checklist"
           aria-labelledby="checklist-title"
-          className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6"
+          className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-200 shadow-xs space-y-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>

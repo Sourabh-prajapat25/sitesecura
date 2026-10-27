@@ -624,8 +624,12 @@ def test_17_missing_policy(sync_db):
         evaluation_time=FIXED_NOW,
     )
 
-    assert result_no_policy.eligible is False
-    assert EligibilityReasonCode.POLICY_NOT_FOUND.value in result_no_policy.reasons
+    # When database has no active policy, engine falls back safely to configuration defaults (min_score=70)
+    # A qualifying completed assessment (score 85 >= 70) is therefore eligible without being blocked
+    assert result_no_policy.eligible is True
+    assert result_no_policy.score == 85
+    assert EligibilityReasonCode.POLICY_NOT_FOUND.value not in result_no_policy.reasons
+    assert result_no_policy.policy.minimum_score == 70
 
     # Restore active policy
     sync_db.query(SecurityBadgePolicy).update({"is_active": True})

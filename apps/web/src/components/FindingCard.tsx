@@ -334,13 +334,13 @@ export function FindingCard({
               </span>
 
               {check.score_impact < 0 && (
-                <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded border border-red-100 dark:border-red-900/60 font-mono">
+                <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded border border-red-100 dark:border-red-900/60 font-mono shrink-0">
                   {check.score_impact} pts
                 </span>
               )}
             </div>
 
-            <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white leading-snug">
+            <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white leading-snug break-words">
               {check.title}
             </h4>
 

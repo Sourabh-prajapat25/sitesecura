@@ -1,0 +1,2604 @@
+<USER_REQUEST>
+============================================================
+SITESECURA — PHASE 4 PRODUCTION READINESS
+PRODUCTION CONFIGURATION + AUTHENTICATION + EMAIL +
+ENTITLEMENTS + BILLING SAFETY + EXTERNAL SERVICES
+============================================================
+
+PROJECT
+============================================================
+
+Product:
+    SiteSecura
+
+Current architecture:
+
+    Frontend:
+        Next.js
+        TypeScript
+        Tailwind
+        shadcn/ui
+
+    Backend:
+        FastAPI
+        Python
+
+    Database:
+        PostgreSQL
+
+    Queue:
+        Celery
+
+    Broker:
+        Redis
+
+    Authentication:
+        Firebase Authentication
+
+    Scanner:
+        Existing SiteSecura scanner
+        Normal Scan
+        Deep Scan
+
+    PDF:
+        Server-side PDF reports
+
+Do NOT replace this architecture.
+
+============================================================
+CURRENT VERIFIED STATE
+============================================================
+
+PHASE 1 — PASS
+
+PDF/report correctness hardened.
+
+Verified areas include:
+
+- exact scan_id report selection
+- Normal vs Deep Scan report separation
+- entitlement-aware report behavior
+- PDF consistency
+- report authorization
+- PDF layout
+
+PHASE 2 — PASS
+
+Verified:
+
+- authentication enforcement
+- multi-tenant isolation
+- authorization
+- server-side plan entitlements
+- SSRF protection
+- DNS rebinding defense
+- rate limiting
+- admin RBAC
+- path traversal protection
+
+PHASE 3 — PASS
+
+Verified:
+
+- scanner state machine
+- Celery retries
+- idempotency
+- duplicate task protection
+- stale scan watchdog
+- monitoring alert deduplication
+- scanner network bounds
+- no synchronous production scanner fallback
+- Redis/Celery reliability controls
+
+Latest Phase 3 reported:
+
+    Phase 3:
+        19/19 passed
+
+    Regression:
+        110/110 passed
+
+    Global:
+        765 passed
+        11 pre-existing legacy failures
+
+    Frontend:
+        TypeScript 0 errors
+
+DO NOT REGRESS ANY OF THIS.
+
+============================================================
+PHASE 4 OBJECTIVE
+============================================================
+
+The goal of Phase 4 is:
+
+    MAKE THE SITESECURA APPLICATION
+    PRODUCTION-CONFIGURATION READY
+
+This phase is NOT:
+
+- VPS deployment
+- DNS setup
+- Cloudflare deployment
+- Docker production deployment
+- PostgreSQL backup infrastructure
+- server firewall configuration
+- SSH hardening
+- final production UAT
+
+Those belong primarily to Phase 5 and Phase 6/7.
+
+This phase focuses on the APPLICATION and its EXTERNAL SERVICE
+CONFIGURATION.
+
+============================================================
+0. ABSOLUTE PRESERVATION RULE
+============================================================
+
+Before modifying anything:
+
+INSPECT FIRST.
+
+Do not rewrite working systems.
+
+Do not replace:
+
+- Firebase Authentication
+- FastAPI authentication architecture
+- PostgreSQL
+- Redis
+- Celery
+- existing scanner
+- existing PDF system
+- existing entitlement system
+- existing monitoring
+- existing admin RBAC
+
+Do not modify scanner scoring.
+
+Do not modify scanner checks.
+
+Do not redesign dashboard.
+
+Do not add V2 functionality.
+
+Do not add:
+
+- dark web monitoring
+- full phishing engine
+- threat intelligence platform
+- Nuclei
+- ZAP
+- mobile app
+- Kubernetes
+- microservices
+- new AI architecture
+
+This is a production hardening phase.
+
+============================================================
+1. BASELINE
+============================================================
+
+Before changes run:
+
+    pytest -q
+
+Also run:
+
+    pytest tests/test_phase3_scanner_reliability.py -q
+
+    pytest tests/test_phase2_security_hardening.py -q
+
+    pytest tests/test_results_consistency_and_pdf.py -q
+
+    pytest tests/test_pdf_and_entitlements.py -q
+
+    pytest tests/test_monitoring_phase_c.py -q
+
+    pytest tests/test_admin_control_center.py -q
+
+Inspect actual repository commands before running if paths differ.
+
+Run frontend:
+
+    npx tsc --noEmit
+
+and the existing production build command.
+
+Record exact baseline.
+
+Do NOT delete tests to make the suite green.
+
+============================================================
+2. FULL ENVIRONMENT VARIABLE AUDIT
+============================================================
+
+Inspect all configuration files.
+
+Search for:
+
+    os.getenv
+    settings.
+    BaseSettings
+    env
+    .env
+    ENVIRONMENT
+    SECRET
+    API_KEY
+    FIREBASE
+    SMTP
+    EMAIL
+    STRIPE
+    REDIS
+    DATABASE
+    CORS
+    JWT
+    STORAGE
+    GROQ
+    GOOGLE
+
+Inspect:
+
+- backend config
+- frontend env
+- Docker env
+- compose files
+- example env files
+- deployment configuration
+- CI configuration
+- test configuration
+
+Create a complete environment variable inventory.
+
+For each variable classify:
+
+    REQUIRED IN DEVELOPMENT
+    REQUIRED IN TEST
+    REQUIRED IN PRODUCTION
+    OPTIONAL
+    SECRET
+    PUBLIC
+    SERVER ONLY
+
+============================================================
+3. SECRET EXPOSURE AUDIT
+============================================================
+
+Search the complete repository for possible secrets.
+
+Look for:
+
+- API keys
+- Firebase private keys
+- service account JSON
+- Stripe secret keys
+- SMTP passwords
+- database passwords
+- Redis credentials
+- Groq/OpenAI/Gemini keys
+- JWT secrets
+- OAuth client secrets
+- private certificates
+- tokens
+
+Check:
+
+    source files
+    JSON
+    YAML
+    Docker files
+    scripts
+    markdown
+    test fixtures
+    logs
+    frontend source
+    git-tracked files
+
+DO NOT expose or print actual secrets.
+
+If secrets are found:
+
+- remove them from source where safe
+- replace with environment variables
+- preserve required development functionality
+- report the variable name, not its secret value
+
+Do NOT rotate a real production secret automatically.
+
+============================================================
+4. FRONTEND PUBLIC ENVIRONMENT AUDIT
+============================================================
+
+Inspect all Next.js environment variables.
+
+Anything exposed through:
+
+    NEXT_PUBLIC_*
+
+must be treated as public.
+
+Verify that secrets are NEVER prefixed with:
+
+    NEXT_PUBLIC_
+
+Frontend may contain:
+
+- Firebase public config
+- public API base URL
+- public analytics ID if used
+
+Frontend must NOT contain:
+
+- Stripe secret
+- Firebase service account private key
+- SMTP password
+- database URL/password
+- Redis URL/password
+- Groq/API private keys
+- JWT signing secrets
+
+============================================================
+5. PRODUCTION ENVIRONMENT MODE
+============================================================
+
+Inspect:
+
+    settings.ENVIRONMENT
+
+and all behavior conditional on:
+
+    development
+    test
+    production
+    prod
+
+Ensure production mode is deterministic.
+
+Production must NOT accidentally inherit:
+
+- debug mode
+- development CORS
+- localhost URLs
+- synchronous scanner fallback
+- test authentication
+- mock email
+- test database
+- development Firebase project
+- development Stripe configuration
+
+============================================================
+6. FAIL FAST ON MISSING CRITICAL PRODUCTION CONFIG
+============================================================
+
+Identify truly mandatory production settings.
+
+Examples:
+
+    DATABASE_URL
+    REDIS_URL
+    Firebase server configuration
+    Firebase project configuration
+    SMTP configuration
+    application secret if required
+    production frontend/backend URLs
+
+Production startup should fail clearly if a critical required
+configuration is missing.
+
+Do NOT silently use:
+
+    localhost
+    development defaults
+    dummy secrets
+
+for production.
+
+However:
+
+Do not require optional integrations that the user intentionally
+does not use yet.
+
+============================================================
+7. LOCALHOST DEFAULT AUDIT
+============================================================
+
+Search for:
+
+    localhost
+    127.0.0.1
+    0.0.0.0
+    http://localhost
+
+Classify every occurrence.
+
+Acceptable:
+
+- development configuration
+- tests
+- local Docker configuration
+
+Not acceptable as an accidental production default:
+
+- API URL
+- Firebase redirect
+- OAuth callback
+- email link
+- report link
+- frontend link
+- CORS origin
+- password reset URL
+
+Fix only production configuration.
+
+============================================================
+8. FIREBASE AUTH PRODUCTION AUDIT
+============================================================
+
+Inspect the complete Firebase authentication integration.
+
+Verify:
+
+- Firebase client initialization
+- Firebase Admin/server verification
+- token verification
+- `/auth/sync`
+- `/auth/me`
+- logout behavior
+- account creation
+- login
+- Google login
+- email/password login
+- password reset
+- email verification if implemented
+- token expiration handling
+- invalid token handling
+
+Do NOT replace Firebase.
+
+============================================================
+9. FIREBASE PROJECT SEPARATION
+============================================================
+
+Determine whether the application distinguishes:
+
+    development Firebase project
+from:
+    production Firebase project
+
+If separate production configuration is supported:
+
+verify it.
+
+Do not hardcode development Firebase identifiers into production.
+
+Do not print Firebase credentials.
+
+============================================================
+10. FIREBASE TOKEN VERIFICATION
+============================================================
+
+Verify backend authentication uses Firebase token verification
+rather than trusting client-supplied user IDs.
+
+Test:
+
+- valid token
+- expired token
+- malformed token
+- missing token
+- altered token
+- token belonging to another user
+
+Expected:
+
+    valid token → authenticated
+
+    invalid/expired/tampered → 401
+
+Preserve Phase 2 authentication behavior.
+
+============================================================
+11. AUTH SYNC
+============================================================
+
+Inspect:
+
+    /auth/sync
+
+Verify it cannot be abused to:
+
+- change user identity
+- change organization
+- self-promote admin
+- alter subscription
+- alter role
+- attach to another user's account
+
+The Firebase identity must remain authoritative.
+
+Verify organization assignment is safe.
+
+============================================================
+12. GOOGLE LOGIN
+============================================================
+
+Inspect Google OAuth/Firebase login.
+
+Verify production configuration supports:
+
+    Google login
+
+without:
+
+- localhost redirect
+- development-only callback
+- wrong Firebase project
+- wrong authorized domain
+
+If production Google OAuth verification is external-account
+dependent, do not pretend it is complete.
+
+Instead:
+
+    implement/configure application-side readiness
+    document remaining external verification step
+
+============================================================
+13. EMAIL/PASSWORD LOGIN
+============================================================
+
+Verify:
+
+- registration
+- login
+- logout
+- invalid credentials
+- duplicate account
+- password reset
+- expired reset link
+- invalid reset link
+
+Do not implement password storage in SiteSecura.
+
+Firebase remains responsible for passwords.
+
+============================================================
+14. PASSWORD RESET
+============================================================
+
+Verify production password reset behavior.
+
+Check:
+
+- reset email URL
+- production domain
+- Firebase authorized domains
+- no localhost URL
+- no sensitive information in reset responses
+- user enumeration protection where appropriate
+
+Test expired/invalid reset token behavior.
+
+============================================================
+15. EMAIL VERIFICATION
+============================================================
+
+If email verification is part of the existing authentication flow:
+
+verify:
+
+- email sent
+- verification link
+- production domain
+- verification state
+- restricted actions if existing product policy requires it
+
+Do not invent mandatory email verification if it is not part of
+current product behavior.
+
+============================================================
+16. SMTP / TRANSACTIONAL EMAIL
+============================================================
+
+Inspect the email service.
+
+Find all email types:
+
+- verification
+- password-related notifications if applicable
+- monitoring alerts
+- security alerts
+- account notifications
+- support emails
+- billing emails
+- admin emails
+
+Determine:
+
+- provider
+- SMTP host
+- port
+- TLS
+- username
+- password
+- sender
+- reply-to
+- timeout
+- retry behavior
+
+Do not hardcode SMTP credentials.
+
+============================================================
+17. EMAIL FAILURE BEHAVIOR
+============================================================
+
+Test what happens if SMTP is unavailable.
+
+A failed alert email must not:
+
+- crash Celery worker
+- mark scan failed
+- corrupt monitoring state
+- create duplicate alerts
+- expose SMTP credentials
+
+Separate:
+
+    security/monitoring state
+
+from:
+
+    notification delivery
+
+If an email fails, log safely and follow existing retry policy.
+
+============================================================
+18. EMAIL IDEMPOTENCY
+============================================================
+
+Inspect notification retries.
+
+Ensure a Celery retry cannot accidentally send the same email
+multiple times where duplicate notifications would be harmful.
+
+Use the existing alert identity/fingerprint architecture if
+appropriate.
+
+Do not build a large notification queue unless necessary.
+
+============================================================
+19. EMAIL SECURITY
+============================================================
+
+Verify outgoing emails do not expose:
+
+- internal stack traces
+- API secrets
+- database IDs unnecessarily
+- Firebase tokens
+- admin-only information
+- cross-tenant information
+
+Links must point to the correct production application URL.
+
+============================================================
+20. PRODUCTION CORS
+============================================================
+
+Inspect FastAPI CORS configuration.
+
+Development may allow:
+
+    localhost
+
+Production must use explicit trusted origins.
+
+Do NOT use:
+
+    allow_origins=["*"]
+
+for authenticated production API access.
+
+Verify:
+
+- production frontend domain
+- API domain if applicable
+- credentials behavior
+- methods
+- headers
+
+Do not break Firebase authentication.
+
+============================================================
+21. CORS TESTS
+============================================================
+
+Test:
+
+    trusted frontend origin
+        → allowed
+
+    malicious origin
+        → rejected/not allowed
+
+    localhost in production
+        → not automatically trusted
+
+Do not rely only on browser behavior.
+
+Verify actual FastAPI configuration.
+
+============================================================
+22. COOKIE / CREDENTIAL CONFIGURATION
+============================================================
+
+Inspect whether the application uses cookies anywhere.
+
+If cookies are used, verify production:
+
+    Secure
+    HttpOnly
+    SameSite
+
+where appropriate.
+
+If Firebase bearer tokens are used instead of application session
+cookies, preserve that architecture.
+
+Do not introduce unnecessary cookies.
+
+============================================================
+23. SECURITY HEADERS
+============================================================
+
+Inspect application-level security headers.
+
+Verify appropriate production behavior for:
+
+- X-Content-Type-Options
+- Content-Security-Policy where compatible
+- Referrer-Policy
+- frame protection
+- HSTS when HTTPS is guaranteed
+
+Do not break:
+
+- Firebase
+- Next.js
+- PDF
+- images
+- dashboard functionality
+
+If infrastructure-level headers belong to Nginx/Cloudflare,
+document them for Phase 5 instead of duplicating incorrectly.
+
+============================================================
+24. ERROR RESPONSE HARDENING
+============================================================
+
+Search for API responses containing:
+
+- traceback
+- exception string
+- database error
+- SQL
+- filesystem paths
+- Redis URL
+- credentials
+- internal hostnames
+
+Production responses should expose:
+
+    safe error code
+    safe message
+    optional request/correlation ID
+
+Detailed exception information belongs in controlled logs.
+
+Preserve existing structured API error format.
+
+============================================================
+25. LOGGING CONFIGURATION
+============================================================
+
+Audit production logging.
+
+Verify:
+
+- appropriate log level
+- no debug secrets
+- no tokens
+- no passwords
+- no authorization headers
+- no SMTP credentials
+- no database passwords
+
+Important events should be logged:
+
+- authentication failures
+- admin security events
+- scan dispatch failures
+- scanner failures
+- Redis failures
+- Celery failures
+- email failures
+- billing/webhook failures
+
+Do not log excessive sensitive customer data.
+
+============================================================
+26. CORRELATION / REQUEST IDENTIFICATION
+============================================================
+
+Inspect whether API requests have request IDs/correlation IDs.
+
+If an existing mechanism exists:
+
+preserve and improve it.
+
+If no mechanism exists and adding one is simple:
+
+consider a minimal request ID that appears in:
+
+- logs
+- safe error responses
+
+Do NOT create a distributed tracing platform in this phase.
+
+============================================================
+27. PLAN / ENTITLEMENT AUDIT
+============================================================
+
+This is a critical section.
+
+Inspect the complete entitlement system.
+
+Current intended plan matrix must remain authoritative.
+
+Verify actual code rather than assuming:
+
+Free:
+    1 website
+    10 scans
+    7-day retention
+    1 seat
+
+Basic:
+    2 websites
+    100 scans
+    30-day retention
+    1 seat
+
+Pro:
+    10 websites
+    500 scans
+    90-day retention
+    3 seats
+
+Agency:
+    100 websites
+    3000 scans
+    365-day retention
+    15 seats
+
+Use the current database/configuration as source of truth if
+different.
+
+Do not silently change pricing or limits.
+
+============================================================
+28. ENTITLEMENT AUTHORITY
+============================================================
+
+Verify:
+
+    database subscription
+        ↓
+    effective plan
+        ↓
+    backend entitlement
+        ↓
+    feature access
+
+The frontend must NOT be authoritative.
+
+Test direct API requests with:
+
+    ?plan=agency
+
+    X-Plan: agency
+
+    X-Subscription-Plan: agency
+
+    {"plan":"agency"}
+
+All must continue to be ignored as established by Phase 2.
+
+============================================================
+29. PLAN LIMITS
+============================================================
+
+Test every major entitlement:
+
+- website count
+- scan count
+- retention
+- monitoring
+- Deep Scan
+- AI features
+- PDF access
+- white label
+- team seats
+- analytics
+- agency features
+
+Use direct API calls where possible.
+
+Do not only test through frontend UI.
+
+============================================================
+30. QUOTA ACCOUNTING
+============================================================
+
+Inspect scan quota lifecycle.
+
+Test:
+
+    scan requested
+        ↓
+    quota reserved
+        ↓
+    task succeeds
+
+and:
+
+    scan requested
+        ↓
+    queue fails
+        ↓
+    quota refunded
+
+and:
+
+    scan retries
+        ↓
+    quota NOT accidentally consumed multiple times
+
+and:
+
+    stale scan
+        ↓
+    quota refunded
+
+Phase 3 introduced quota refund behavior.
+
+Verify no double-refund is possible.
+
+============================================================
+31. QUOTA DOUBLE-REFUND PROTECTION
+============================================================
+
+This is important.
+
+Test:
+
+    scan fails
+
+then:
+
+    watchdog sees it
+
+then:
+
+    retry/redelivery sees it
+
+Quota must NOT be refunded multiple times.
+
+Inspect:
+
+    refund_scan_quota_sync
+
+and all call sites.
+
+Implement idempotent compensation if required.
+
+Do not allow:
+
+    1 scan
+    ↓
+    refund
+    ↓
+    refund again
+    ↓
+    quota > purchased/allowed
+
+============================================================
+32. SUBSCRIPTION STATE
+============================================================
+
+Audit subscription states:
+
+- active
+- trialing
+- past_due
+- canceled
+- expired
+- incomplete
+- unpaid
+
+Use actual states present in code.
+
+Determine how each state maps to:
+
+    effective plan
+
+Do not invent billing behavior.
+
+Document the current intended policy.
+
+============================================================
+33. FREE PLAN SAFETY
+============================================================
+
+A user must have a deterministic fallback if:
+
+- no subscription record exists
+- subscription expired
+- billing integration unavailable
+- Stripe webhook delayed
+
+Do not accidentally grant:
+
+    Agency
+
+or:
+
+    Pro
+
+because billing data is missing.
+
+Use the existing safe default.
+
+============================================================
+34. BILLING ARCHITECTURE AUDIT
+============================================================
+
+Inspect current Stripe/billing implementation.
+
+Find:
+
+- checkout endpoint
+- portal endpoint
+- webhook endpoint
+- price IDs
+- monthly price IDs
+- yearly price IDs
+- subscription synchronization
+- cancellation
+- upgrade
+- downgrade
+- invoice handling
+- webhook signature verification
+
+Do NOT enable live payment merely because code exists.
+
+============================================================
+35. IMPORTANT — LIVE PAYMENT IS DEFERRED
+============================================================
+
+The founder has explicitly decided:
+
+    LIVE PAYMENT GATEWAY INTEGRATION
+    MAY BE COMPLETED AFTER DEPLOYMENT
+    WHEN THE PAYMENT GATEWAY IS APPROVED/AVAILABLE.
+
+Therefore:
+
+DO NOT make live Stripe payment integration a Phase 4 blocker.
+
+However:
+
+The application MUST NOT expose broken payment flows.
+
+Choose the safest existing UI behavior.
+
+Acceptable approaches:
+
+A:
+    Stripe test mode for internal validation
+
+or:
+
+B:
+    "Coming Soon"
+    "Payment integration pending"
+
+or:
+
+C:
+    "Contact / Join Early Access"
+
+depending on current UI.
+
+DO NOT show a working-looking:
+
+    "Buy Now"
+
+button that leads to a guaranteed failure.
+
+============================================================
+36. STRIPE TEST MODE
+============================================================
+
+If Stripe test-mode configuration already exists:
+
+verify:
+
+- checkout creation
+- subscription creation
+- webhook handling
+- signature verification
+- plan mapping
+- cancellation
+- entitlement synchronization
+
+Use test keys only.
+
+Never use real secret keys in tests.
+
+============================================================
+37. STRIPE WEBHOOK SECURITY
+============================================================
+
+Audit webhook handling.
+
+Verify:
+
+- signature verification
+- event parsing
+- idempotency
+- duplicate webhook handling
+- safe error responses
+- subscription state synchronization
+
+A duplicate webhook must not:
+
+- create duplicate subscriptions
+- corrupt plan
+- grant duplicate entitlements
+
+Do not require live Stripe if it is not currently configured.
+
+============================================================
+38. BILLING PLAN MAPPING
+============================================================
+
+Verify exact mapping:
+
+    Stripe Price
+       ↓
+    internal plan
+       ↓
+    subscription
+       ↓
+    entitlement
+
+No frontend-provided plan may be trusted.
+
+Annual/monthly mapping must be explicit.
+
+If annual live price IDs are not yet configured:
+
+document:
+
+    READY FOR CONFIGURATION
+    NOT LIVE
+
+Do not invent price IDs.
+
+============================================================
+39. PAYMENT UI SAFETY
+============================================================
+
+Inspect pricing page and billing page.
+
+If live payment is unavailable:
+
+- clearly communicate it
+- disable or replace broken checkout actions
+- preserve pricing information
+- do not falsely claim payment succeeded
+- do not grant paid plan after frontend click
+
+Existing plan comparison should remain intact.
+
+============================================================
+40. BILLING ACCESS WITHOUT PAYMENT
+============================================================
+
+Verify a user cannot grant themselves:
+
+    Pro
+    Agency
+
+through:
+
+- localStorage
+- frontend state
+- URL
+- query parameters
+- request body
+- headers
+
+Phase 2 already protects this.
+
+Do not weaken it.
+
+============================================================
+41. ADMIN SUBSCRIPTION MANAGEMENT
+============================================================
+
+Inspect whether admin can manually manage subscriptions.
+
+If an existing admin function exists:
+
+verify:
+
+- admin-only access
+- audit logging
+- target organization/user isolation
+- no self-escalation
+- safe plan change
+
+Do not create a dangerous hidden backdoor.
+
+If manual plan provisioning is needed for pre-launch testing,
+use the existing admin mechanism only.
+
+============================================================
+42. ACCOUNT LIFECYCLE
+============================================================
+
+Test:
+
+    register
+       ↓
+    auth sync
+       ↓
+    organization creation
+       ↓
+    default plan
+       ↓
+    dashboard
+
+Verify no orphaned account state.
+
+Also test:
+
+- logout
+- re-login
+- refresh
+- expired token
+- deleted Firebase user if applicable
+- deleted organization if applicable
+
+Do not break existing users.
+
+============================================================
+43. ONBOARDING
+============================================================
+
+Inspect onboarding.
+
+Verify a newly registered user:
+
+- gets correct organization
+- gets correct default plan
+- sees correct dashboard
+- can add website according to entitlement
+- cannot access another organization
+
+Do not create duplicate organizations on repeated `/auth/sync`
+calls.
+
+============================================================
+44. AUTH SYNC IDEMPOTENCY
+============================================================
+
+Call auth synchronization repeatedly.
+
+Expected:
+
+    same Firebase identity
+        ↓
+    same SiteSecura user
+        ↓
+    same organization
+        ↓
+    no duplicates
+
+Test concurrent/repeated synchronization where practical.
+
+============================================================
+45. DELETED / DISABLED USER
+============================================================
+
+Inspect how disabled/deleted accounts behave.
+
+A disabled Firebase account must not continue to access protected
+resources using stale application state.
+
+Preserve Firebase as identity authority.
+
+Do not invent a second password/auth system.
+
+============================================================
+46. API BASE URL
+============================================================
+
+Audit frontend API configuration.
+
+Production must point to:
+
+    production API URL
+
+not:
+
+    localhost:8000
+
+Verify:
+
+- browser requests
+- auth requests
+- scan requests
+- PDF downloads
+- report requests
+- monitoring
+- admin
+- AI endpoints
+
+Do not hardcode a development API URL.
+
+============================================================
+47. FRONTEND AUTH CONFIGURATION
+============================================================
+
+Inspect:
+
+- Firebase initialization
+- auth persistence
+- token acquisition
+- token refresh
+- API authorization header
+- logout cleanup
+- unauthorized response handling
+
+When API returns:
+
+    401
+
+frontend should not display a broken state forever.
+
+Use existing auth architecture.
+
+============================================================
+48. 401 / 403 UX
+============================================================
+
+Verify frontend behavior:
+
+    401
+        → login/session recovery
+
+    403 entitlement
+        → upgrade/feature explanation
+
+    404
+        → appropriate not-found behavior
+
+Do not expose internal authorization details.
+
+Do not confuse:
+
+    unauthorized
+
+with:
+
+    feature not included in plan
+
+============================================================
+49. PDF PRODUCTION CONFIGURATION
+============================================================
+
+Phase 1 fixed PDF correctness.
+
+Now verify production configuration for:
+
+- storage directory
+- file permissions
+- report path
+- public/private access
+- base URL
+- organization branding
+- white-label assets
+- download endpoint
+- report retention
+
+Do not make reports publicly guessable.
+
+Preserve Phase 2 path traversal protection.
+
+============================================================
+50. REPORT STORAGE SECURITY
+============================================================
+
+Verify:
+
+    user A
+       ↓
+    report A
+
+cannot be downloaded by:
+
+    user B
+
+even if B guesses:
+
+- scan ID
+- report ID
+- filename
+- PDF path
+
+Keep authorization in backend.
+
+Do not rely on obscure filenames.
+
+============================================================
+51. STORAGE CONFIGURATION
+============================================================
+
+Determine whether production reports are stored:
+
+- local disk
+- mounted volume
+- object storage
+
+Do not migrate to S3/object storage in this phase unless the
+existing architecture already supports it.
+
+If local storage is used:
+
+document the Phase 5 backup requirement.
+
+============================================================
+52. HEALTH / READINESS
+============================================================
+
+Inspect:
+
+    /health
+    /ready
+
+or actual equivalent endpoints.
+
+Health should answer:
+
+    is process alive?
+
+Readiness should detect critical dependencies.
+
+At minimum inspect:
+
+- PostgreSQL
+- Redis
+
+Do not make readiness dependent on optional third-party services
+unless the application cannot operate without them.
+
+============================================================
+53. REDIS PRODUCTION FAIL-SAFE — CRITICAL
+============================================================
+
+Phase 3 currently reports:
+
+    Redis rate limiting
+    +
+    in-memory fallback
+    +
+    critical production telemetry
+
+This is NOT sufficient as the final production guarantee.
+
+For Phase 4:
+
+Determine all Redis-dependent distributed controls:
+
+- rate limiting
+- Celery broker
+- distributed locks
+- task coordination
+- other distributed state
+
+In PRODUCTION:
+
+DO NOT silently claim distributed protection while using
+per-process in-memory state.
+
+For security-critical distributed rate limiting:
+
+prefer:
+
+    Redis available
+        ↓
+    distributed limit enforced
+
+If Redis unavailable:
+
+    fail safely
+
+rather than:
+
+    silently allow unlimited distributed requests.
+
+Development/test fallback may remain.
+
+Production behavior must be explicit.
+
+Add tests for this.
+
+Do NOT break local development.
+
+============================================================
+54. REDIS URL VALIDATION
+============================================================
+
+Production should not silently use:
+
+    redis://localhost
+
+unless Redis genuinely runs on the same production machine and
+that is intentional.
+
+Validate production Redis configuration.
+
+Do not print credentials.
+
+============================================================
+55. DATABASE URL VALIDATION
+============================================================
+
+Production database must not accidentally point to:
+
+- local SQLite
+- development PostgreSQL
+- test database
+
+Inspect startup configuration.
+
+If SQLite exists only for tests, preserve it.
+
+============================================================
+56. DATABASE MIGRATION SAFETY
+============================================================
+
+Inspect Alembic configuration.
+
+Verify:
+
+    production database
+        ↓
+    alembic upgrade head
+
+works from a clean/current state.
+
+Do not automatically downgrade migrations.
+
+Do not delete migration history.
+
+Check that the current head is consistent.
+
+If migration drift exists:
+
+fix safely and document it.
+
+============================================================
+57. MIGRATION STARTUP POLICY
+============================================================
+
+Determine whether production startup should automatically run
+migrations or whether deployment will run:
+
+    alembic upgrade head
+
+separately.
+
+Do not invent a dangerous auto-migration system.
+
+Document the recommended Phase 5 deployment behavior.
+
+============================================================
+58. API DOCUMENTATION / OPENAPI
+============================================================
+
+Inspect production OpenAPI behavior.
+
+If API docs are intentionally disabled in production:
+
+preserve that.
+
+If enabled:
+
+ensure they do not expose secrets.
+
+Do not unnecessarily expose internal admin APIs publicly.
+
+============================================================
+59. ADMIN APPLICATION CONFIGURATION
+============================================================
+
+Verify:
+
+- admin routes protected
+- admin frontend protected
+- admin role loaded from backend
+- admin cannot be granted from client
+- admin actions audited
+
+Do not rely on:
+
+    hidden URL
+
+as security.
+
+Phase 2 already established server-side admin authorization.
+
+Preserve it.
+
+============================================================
+60. ADMIN INITIAL PROVISIONING
+============================================================
+
+Determine how the first production admin is created.
+
+Possible existing method:
+
+- controlled DB operation
+- migration
+- environment bootstrap
+- manual operator procedure
+
+Do NOT create a public endpoint:
+
+    /make-me-admin
+
+Do NOT allow user self-promotion.
+
+Document a safe production provisioning procedure.
+
+============================================================
+61. ADMIN URL
+============================================================
+
+If the frontend has:
+
+    /admin
+
+or another admin route:
+
+security must come from backend RBAC.
+
+Changing the URL alone is NOT security.
+
+Do not spend Phase 4 effort on obscurity.
+
+============================================================
+62. API RATE LIMITING REVIEW
+============================================================
+
+Phase 2/3 already introduced rate limits.
+
+Verify production configuration for:
+
+- anonymous scans
+- authenticated scans
+- PDF downloads
+- badges
+- authentication endpoints if applicable
+
+Do not arbitrarily change existing values.
+
+Ensure Redis-backed limits are production-safe.
+
+============================================================
+63. ABUSE PROTECTION
+============================================================
+
+Review:
+
+- registration abuse
+- password reset abuse
+- anonymous scanning
+- API brute force
+- report download abuse
+
+Use existing mechanisms where available.
+
+Do not build a full WAF.
+
+Cloudflare/WAF belongs to Phase 5.
+
+============================================================
+64. AUTH RATE LIMITING
+============================================================
+
+If Firebase handles credential security externally, do not create
+a duplicate password system.
+
+However inspect whether SiteSecura API endpoints can be abused
+through:
+
+- auth sync
+- token validation
+- password reset initiation
+- registration workflows
+
+Implement only application-level protections that fit the
+existing architecture.
+
+============================================================
+65. EXTERNAL SERVICE FAILURE MATRIX
+============================================================
+
+Create a matrix for:
+
+------------------------------------------------------------
+SERVICE
+------------------------------------------------------------
+
+Firebase
+PostgreSQL
+Redis
+SMTP
+Stripe
+Groq/AI provider if applicable
+Storage
+
+For each:
+
+    normal
+    unavailable
+    timeout
+    invalid credentials
+
+Define:
+
+    user-facing behavior
+    log behavior
+    retry behavior
+    whether feature should fail
+    whether core scanning should continue
+
+Important:
+
+Stripe being unavailable must NOT break scanning.
+
+SMTP being unavailable must NOT corrupt scan results.
+
+AI provider being unavailable must NOT break core scanner.
+
+Redis unavailable in production must NOT silently bypass
+distributed security guarantees.
+
+============================================================
+66. AI PROVIDER SAFETY
+============================================================
+
+Inspect existing AI/Groq integration.
+
+Verify:
+
+- API key only server-side
+- timeout
+- safe errors
+- fallback behavior
+- no key exposed frontend
+- AI failure does not break core scan
+- AI response does not bypass entitlement
+
+Do not redesign AI.
+
+============================================================
+67. AI ENTITLEMENT
+============================================================
+
+Verify AI features remain backend-gated.
+
+A Free user must not obtain Pro AI functionality by modifying:
+
+- frontend
+- query parameter
+- header
+- body
+- localStorage
+
+Preserve Phase 2 protections.
+
+============================================================
+68. ENVIRONMENT-SPECIFIC EMAIL LINKS
+============================================================
+
+All generated links must use correct environment base URL.
+
+Audit:
+
+- login
+- password reset
+- email verification
+- report links
+- monitoring alerts
+- dashboard links
+- support links
+
+Production emails must not contain:
+
+    localhost
+
+============================================================
+69. ENVIRONMENT-SPECIFIC FRONTEND LINKS
+============================================================
+
+Search for hardcoded:
+
+    http://localhost
+    http://127.0.0.1
+
+and development-only domains.
+
+Classify every result.
+
+Do not blindly replace test fixtures.
+
+============================================================
+70. PRODUCTION CONFIG DOCUMENTATION
+============================================================
+
+Create/update a safe production configuration document.
+
+It must contain:
+
+    required environment variables
+
+but NEVER actual secret values.
+
+Example:
+
+    DATABASE_URL=<production PostgreSQL URL>
+    REDIS_URL=<production Redis URL>
+    FIREBASE_PROJECT_ID=<production project>
+    SMTP_HOST=<provider>
+    SMTP_USERNAME=<secret>
+    SMTP_PASSWORD=<secret>
+    STRIPE_SECRET_KEY=<only when configured>
+    STRIPE_WEBHOOK_SECRET=<only when configured>
+
+Clearly mark:
+
+    REQUIRED
+    OPTIONAL
+    DEFERRED
+
+============================================================
+71. PAYMENT DEFERRED STATUS
+============================================================
+
+Document:
+
+    LIVE PAYMENT:
+        DEFERRED UNTIL GATEWAY APPROVAL/CONFIGURATION
+
+This must NOT be represented as:
+
+    "payment production-ready"
+
+if it isn't.
+
+The application can still be production-ready as a scanner SaaS
+with paid payment collection temporarily disabled or marked
+coming soon.
+
+============================================================
+72. BILLING UI FINAL RULE
+============================================================
+
+Before deployment:
+
+Pricing page must be truthful.
+
+If checkout is not live:
+
+Use:
+
+    Coming Soon
+
+or:
+
+    Contact Us / Join Early Access
+
+or an equivalent truthful action.
+
+Never:
+
+    fake successful checkout
+
+Never:
+
+    grant paid plan from frontend
+
+Never:
+
+    expose a broken production checkout endpoint.
+
+============================================================
+73. PRODUCTION ERROR PAGES
+============================================================
+
+Inspect frontend:
+
+- 404
+- 500
+- API unavailable
+- scanner queue unavailable
+- authentication expired
+- permission denied
+
+The UI should provide a clean experience.
+
+Do not expose stack traces.
+
+Do not redesign the whole UI.
+
+============================================================
+74. MAINTENANCE / DEPENDENCY FAILURE UX
+============================================================
+
+For example:
+
+Redis unavailable:
+
+    "Scanning is temporarily unavailable. Please try again."
+
+Not:
+
+    Python traceback
+
+SMTP unavailable:
+
+    security alert still recorded
+    email delivery may retry/fail safely
+
+AI unavailable:
+
+    core scan still works
+
+============================================================
+75. TESTING REQUIREMENTS
+============================================================
+
+Create a dedicated Phase 4 test suite:
+
+    tests/test_phase4_production_configuration.py
+
+Use existing testing conventions.
+
+Test:
+
+------------------------------------------------------------
+ENVIRONMENT
+------------------------------------------------------------
+
+[ ] production config loads
+[ ] missing required production secret fails safely
+[ ] development defaults do not leak into production
+[ ] localhost not used accidentally
+
+------------------------------------------------------------
+FIREBASE
+------------------------------------------------------------
+
+[ ] valid Firebase token
+[ ] invalid token
+[ ] expired token
+[ ] auth sync
+[ ] repeated auth sync
+[ ] no self-admin
+[ ] organization isolation
+
+------------------------------------------------------------
+AUTH
+------------------------------------------------------------
+
+[ ] registration
+[ ] login
+[ ] logout
+[ ] password reset flow where testable
+[ ] Google login configuration where testable
+[ ] 401 behavior
+
+------------------------------------------------------------
+EMAIL
+------------------------------------------------------------
+
+[ ] email configuration
+[ ] SMTP failure
+[ ] safe error
+[ ] no secret leakage
+[ ] production URLs
+
+------------------------------------------------------------
+CORS
+------------------------------------------------------------
+
+[ ] trusted origin
+[ ] untrusted origin
+[ ] no wildcard production auth CORS
+
+------------------------------------------------------------
+ENTITLEMENTS
+------------------------------------------------------------
+
+[ ] Free
+[ ] Basic
+[ ] Pro
+[ ] Agency
+[ ] direct API bypass attempts
+[ ] website limits
+[ ] scan limits
+[ ] feature gates
+[ ] retention
+[ ] team seats
+
+------------------------------------------------------------
+QUOTA
+------------------------------------------------------------
+
+[ ] successful scan quota
+[ ] queue failure refund
+[ ] stale scan refund
+[ ] retry doesn't double consume
+[ ] failure doesn't double refund
+
+------------------------------------------------------------
+REDIS
+------------------------------------------------------------
+
+[ ] production Redis available
+[ ] production Redis unavailable
+[ ] no unsafe distributed in-memory fallback
+[ ] development fallback remains available if intended
+
+------------------------------------------------------------
+BILLING
+------------------------------------------------------------
+
+[ ] test checkout if configured
+[ ] webhook signature
+[ ] duplicate webhook
+[ ] plan mapping
+[ ] no frontend entitlement bypass
+[ ] live payment correctly marked deferred
+
+------------------------------------------------------------
+PDF
+------------------------------------------------------------
+
+[ ] authorized report
+[ ] unauthorized report
+[ ] correct production storage path
+[ ] no public path access
+
+------------------------------------------------------------
+AI
+------------------------------------------------------------
+
+[ ] AI entitlement
+[ ] AI provider failure
+[ ] no API key frontend exposure
+
+============================================================
+76. REGRESSION TESTS
+============================================================
+
+After Phase 4:
+
+Run:
+
+    pytest -q
+
+Run Phase 3:
+
+    pytest tests/test_phase3_scanner_reliability.py -q
+
+Run Phase 2:
+
+    pytest tests/test_phase2_security_hardening.py -q
+
+Run Phase 1:
+
+    pytest tests/test_results_consistency_and_pdf.py -q
+    pytest tests/test_pdf_and_entitlements.py -q
+
+Run monitoring:
+
+    pytest tests/test_monitoring_phase_c.py -q
+
+Run admin:
+
+    pytest tests/test_admin_control_center.py -q
+
+Run the new Phase 4 suite.
+
+Frontend:
+
+    npx tsc --noEmit
+
+Production build:
+
+    npm run build
+
+Use actual project commands if different.
+
+============================================================
+77. TEST COUNT INTEGRITY
+============================================================
+
+Do NOT delete or weaken existing tests.
+
+Previous Phase 3:
+
+    776 total
+    765 passed
+    11 pre-existing legacy failures
+
+After Phase 4 report:
+
+    exact total
+    exact passed
+    exact failed
+
+Explicitly compare:
+
+    old failures
+    new failures
+
+If the 11 legacy failures remain:
+
+    preserve and clearly identify them.
+
+If any new failures appear:
+
+    FIX THEM.
+
+============================================================
+78. NO FAKE VERIFICATION
+============================================================
+
+Do NOT claim:
+
+    Firebase production verified
+
+unless actual production configuration was inspected.
+
+Do NOT claim:
+
+    SMTP verified
+
+unless actual SMTP/test configuration was tested.
+
+Do NOT claim:
+
+    Stripe live verified
+
+because LIVE PAYMENT IS DEFERRED.
+
+Do NOT claim:
+
+    VPS ready
+
+because VPS belongs to Phase 5.
+
+Use statuses:
+
+    VERIFIED
+    CONFIGURED
+    READY FOR CONFIGURATION
+    DEFERRED
+    NOT VERIFIED
+    BLOCKED
+
+Be completely honest.
+
+============================================================
+79. FILE CHANGE CONTROL
+============================================================
+
+At completion provide:
+
+MODIFIED FILES
+
+CREATED FILES
+
+DELETED FILES
+
+MIGRATIONS CREATED
+
+TESTS CREATED
+
+For every meaningful change explain:
+
+    what changed
+    why
+    risk
+    how tested
+
+Do not delete working code without justification.
+
+============================================================
+80. PHASE 4 ACCEPTANCE CRITERIA
+============================================================
+
+Phase 4 can PASS only if:
+
+------------------------------------------------------------
+CONFIGURATION
+------------------------------------------------------------
+
+[ ] production environment clearly separated
+[ ] required production config identified
+[ ] no accidental localhost production defaults
+[ ] no secrets committed
+[ ] frontend contains no private secrets
+[ ] production startup fails safely for missing critical config
+
+------------------------------------------------------------
+AUTH
+------------------------------------------------------------
+
+[ ] Firebase token verification correct
+[ ] auth sync safe
+[ ] Google login production configuration understood
+[ ] email/password flow understood
+[ ] password reset configured
+[ ] no self-admin
+[ ] repeated auth sync idempotent
+
+------------------------------------------------------------
+EMAIL
+------------------------------------------------------------
+
+[ ] SMTP configuration externalized
+[ ] monitoring email failure safe
+[ ] no secret leakage
+[ ] production links correct
+[ ] notification duplication controlled
+
+------------------------------------------------------------
+CORS / SECURITY
+------------------------------------------------------------
+
+[ ] production CORS restricted
+[ ] security headers reviewed
+[ ] safe error responses
+[ ] logs sanitized
+
+------------------------------------------------------------
+ENTITLEMENTS
+------------------------------------------------------------
+
+[ ] database authoritative
+[ ] plan limits correct
+[ ] direct API bypass impossible
+[ ] quota accounting correct
+[ ] quota refunds idempotent
+
+------------------------------------------------------------
+REDIS
+------------------------------------------------------------
+
+[ ] production Redis required for distributed guarantees
+[ ] unsafe silent production fallback removed/blocked
+[ ] development fallback preserved if appropriate
+
+------------------------------------------------------------
+BILLING
+------------------------------------------------------------
+
+[ ] billing architecture audited
+[ ] test-mode billing works if configured
+[ ] webhook security verified
+[ ] duplicate webhook handling verified
+[ ] live payment explicitly deferred
+[ ] pricing UI contains no broken payment flow
+
+------------------------------------------------------------
+PDF / STORAGE
+------------------------------------------------------------
+
+[ ] report authorization intact
+[ ] storage configuration understood
+[ ] no direct unauthorized file access
+[ ] Phase 1 PDF remains correct
+
+------------------------------------------------------------
+AI
+------------------------------------------------------------
+
+[ ] AI secrets server-side
+[ ] AI entitlement enforced
+[ ] AI failure isolated from scanner
+
+------------------------------------------------------------
+REGRESSION
+------------------------------------------------------------
+
+[ ] Phase 1 PASS
+[ ] Phase 2 PASS
+[ ] Phase 3 PASS
+[ ] Phase 4 tests PASS
+[ ] frontend TypeScript PASS
+[ ] production build PASS
+
+============================================================
+81. IMPORTANT PHASE BOUNDARY
+============================================================
+
+DO NOT perform the full VPS deployment in this phase.
+
+DO NOT:
+
+- configure production DNS
+- configure Cloudflare
+- expose Nginx
+- open firewall ports
+- provision production VPS
+- configure external PostgreSQL backup
+- perform production restore test
+- configure production Docker host
+- configure SSH hardening
+
+Those belong to:
+
+    PHASE 5 — PRODUCTION INFRASTRUCTURE & VPS
+
+Phase 4 prepares the application so Phase 5 can deploy it.
+
+============================================================
+82. FINAL REPORT
+============================================================
+
+When complete, return a detailed report.
+
+Use this exact structure:
+
+------------------------------------------------------------
+1. PHASE 4 EXECUTIVE SUMMARY
+------------------------------------------------------------
+
+Explain what was hardened.
+
+------------------------------------------------------------
+2. ENVIRONMENT CONFIGURATION
+------------------------------------------------------------
+
+List:
+
+    variable
+    purpose
+    environment
+    secret/public
+    status
+
+NEVER show secret values.
+
+------------------------------------------------------------
+3. FIREBASE AUTH
+------------------------------------------------------------
+
+Report:
+
+    token verification
+    auth sync
+    Google
+    email/password
+    reset
+    verification
+    production configuration
+
+------------------------------------------------------------
+4. EMAIL / SMTP
+------------------------------------------------------------
+
+Report:
+
+    provider
+    configuration
+    failure handling
+    notification behavior
+
+Do not expose credentials.
+
+------------------------------------------------------------
+5. CORS / SECURITY HEADERS
+------------------------------------------------------------
+
+Report exact production behavior.
+
+------------------------------------------------------------
+6. ENTITLEMENTS
+------------------------------------------------------------
+
+Show the actual verified matrix.
+
+------------------------------------------------------------
+7. QUOTA ACCOUNTING
+------------------------------------------------------------
+
+Explain:
+
+    reserve
+    success
+    failure
+    retry
+    stale scan
+    refund
+
+and prove double refund is prevented.
+
+------------------------------------------------------------
+8. REDIS PRODUCTION BEHAVIOR
+------------------------------------------------------------
+
+This section is mandatory.
+
+Explain:
+
+    Redis available
+    Redis unavailable
+    development fallback
+    production fallback
+    distributed guarantees
+
+------------------------------------------------------------
+9. BILLING
+------------------------------------------------------------
+
+Report:
+
+    Stripe architecture
+    test mode
+    webhook
+    plan mapping
+    annual/monthly configuration
+    live payment status
+
+Explicitly state:
+
+    LIVE PAYMENT DEFERRED
+
+if not configured.
+
+------------------------------------------------------------
+10. PDF / STORAGE
+------------------------------------------------------------
+
+Report production configuration and authorization.
+
+------------------------------------------------------------
+11. AI
+------------------------------------------------------------
+
+Report API-key security and entitlement.
+
+------------------------------------------------------------
+12. TEST RESULTS
+------------------------------------------------------------
+
+Provide exact:
+
+    Phase 4 tests
+    Phase 1 regression
+    Phase 2 regression
+    Phase 3 regression
+    Monitoring
+    Admin
+    Global pytest
+    TypeScript
+    Production build
+
+------------------------------------------------------------
+13. FILE CHANGES
+------------------------------------------------------------
+
+Exact modified/created/deleted files.
+
+------------------------------------------------------------
+14. REMAINING ITEMS
+------------------------------------------------------------
+
+Classify:
+
+    P0 — MUST FIX BEFORE PRODUCTION
+    P1 — SHOULD FIX
+    P2 — CAN WAIT
+    DEFERRED — INTENTIONALLY AFTER DEPLOYMENT
+
+Be honest.
+
+------------------------------------------------------------
+15. PHASE 4 FINAL DESIGNATION
+------------------------------------------------------------
+
+Use exactly one:
+
+    PHASE 4 PASS
+
+    PHASE 4 PASS WITH NON-BLOCKING ISSUES
+
+    PHASE 4 NOT READY
+
+Never claim PASS if a P0 remains.
+
+============================================================
+FINAL PRINCIPLE
+============================================================
+
+Phase 4 should produce:
+
+    SECURE APPLICATION
+          +
+    PRODUCTION CONFIGURATION
+          +
+    REAL AUTHENTICATION
+          +
+    REAL EMAIL READINESS
+          +
+    CORRECT ENTITLEMENTS
+          +
+    SAFE BILLING ARCHITECTURE
+          +
+    SAFE REDIS BEHAVIOR
+          +
+    CLEAN ERROR HANDLING
+          +
+    NO SECRET LEAKS
+          +
+    NO REGRESSIONS
+          =
+    APPLICATION READY FOR VPS DEPLOYMENT
+
+DO NOT DEPLOY YET.
+
+DO NOT ADD V2 FEATURES.
+
+DO NOT CHANGE SCANNER LOGIC.
+
+DO NOT CHANGE SCORING.
+
+DO NOT BYPASS PHASE 2 SECURITY.
+
+DO NOT BYPASS PHASE 3 CELERY ARCHITECTURE.
+
+INSPECT FIRST.
+
+MAKE MINIMAL CHANGES.
+
+TEST EVERYTHING.
+
+REPORT EXACT RESULTS.
+
+BEGIN NOW.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-08T23:20:53+05:30.
+</ADDITIONAL_METADATA>

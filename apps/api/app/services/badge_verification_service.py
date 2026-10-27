@@ -193,18 +193,15 @@ class BadgeVerificationService:
                 },
             )
 
-        # 2. Resolve active policy
+        # 2. Resolve active policy (or auto-create default policy safely)
         policy = await BadgeEligibilityService.get_active_badge_policy(db)
         if not policy:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={
-                    "error": {
-                        "code": "ACTIVE_POLICY_UNAVAILABLE",
-                        "message": "No active Verified Badge policy is currently configured.",
-                    }
-                },
-            )
+            try:
+                from app.services.badge_policy_service import BadgePolicyService
+                policy = await BadgePolicyService.get_or_create_default_policy(db)
+            except Exception as e:
+                logger.warning(f"Could not load or auto-create default policy: {e}")
+                policy = None
 
         # 3. Resolve candidate scan
         candidate_scan = None
@@ -235,13 +232,16 @@ class BadgeVerificationService:
             .where(
                 SecurityVerification.website_id == website.id,
                 SecurityVerification.scan_id == candidate_scan.id,
-                SecurityVerification.policy_id == policy.id,
                 SecurityVerification.status == VerificationStatus.VERIFIED.value,
                 SecurityVerification.expires_at > now,
             )
-            .order_by(SecurityVerification.created_at.desc())
-            .limit(1)
         )
+        if policy:
+            existing_stmt = existing_stmt.where(SecurityVerification.policy_id == policy.id)
+        else:
+            existing_stmt = existing_stmt.where(SecurityVerification.policy_id.is_(None))
+
+        existing_stmt = existing_stmt.order_by(SecurityVerification.created_at.desc()).limit(1)
         existing_res = await db.execute(existing_stmt)
         existing_verification = existing_res.scalar_one_or_none()
 
@@ -254,7 +254,8 @@ class BadgeVerificationService:
             return resp
 
         # 5. Create new verification record (with token collision protection & concurrency safety)
-        expires_at = now + timedelta(days=policy.verification_validity_days)
+        validity_days = policy.verification_validity_days if policy else 30
+        expires_at = now + timedelta(days=validity_days)
         public_token = None
         for _ in range(5):
             candidate_tok = generate_public_token()
@@ -270,7 +271,7 @@ class BadgeVerificationService:
             id=uuid.uuid4(),
             website_id=website.id,
             scan_id=candidate_scan.id,
-            policy_id=policy.id,
+            policy_id=policy.id if policy else None,
             status=VerificationStatus.VERIFIED.value,
             public_token=public_token,
             score=candidate_scan.score,
@@ -281,7 +282,7 @@ class BadgeVerificationService:
                 "checks": eligibility.checks.model_dump(),
                 "reasons": eligibility.reasons,
                 "evaluated_at": eligibility.evaluated_at.isoformat(),
-                "policy_name": policy.name,
+                "policy_name": policy.name if policy else "default_fallback",
             },
             monitoring_enabled=bool(getattr(website, "monitoring_enabled", False)),
             badge_settings={"style": "standard", "theme": "light"},

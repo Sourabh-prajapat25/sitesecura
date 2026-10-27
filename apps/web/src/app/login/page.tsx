@@ -176,17 +176,6 @@ function LoginForm() {
 
         {/* Password */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label htmlFor="password-input" className="block text-xs font-semibold text-slate-700">
-              Password <span className="text-red-500">*</span>
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
           <PasswordInput
             id="password-input"
             label="Password"
@@ -196,6 +185,14 @@ function LoginForm() {
             disabled={loading || socialLoading}
             placeholder="Enter your account password"
             autoComplete="current-password"
+            rightAction={
+              <Link
+                href="/forgot-password"
+                className="text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            }
           />
         </div>
 

@@ -3,7 +3,8 @@ Scanly API - Billing, Multi-Provider Checkout & Webhook Endpoints
 Supports Razorpay & Stripe checkouts, signature verification, in-app cancellation, and idempotent webhooks.
 """
 import logging
-from typing import Dict, Any, Optional
+import uuid
+from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +12,8 @@ from app.db.session import get_db, get_sync_db
 from app.core.config import settings
 from app.core.security import get_current_user_token
 from app.core.permissions import get_plan_config
-from app.models.billing import Subscription, UsageRecord
+from app.core.pricing import resolve_trusted_pricing
+from app.models.billing import Subscription, UsageRecord, PaymentTransaction
 from app.models.website import Website
 from app.models.alert import AuditLog
 from app.schemas.shared import (
@@ -23,7 +25,10 @@ from app.schemas.shared import (
     VerifyPaymentResponse,
     CancelSubscriptionRequest,
     CancelSubscriptionResponse,
+    PaymentTransactionItem,
+    PaymentHistoryResponse,
 )
+from app.services.payment_providers import get_payment_provider
 from app.services.auth_service import get_or_create_user
 from app.services.billing_service import (
     create_checkout_session,
@@ -148,6 +153,28 @@ async def get_session_status(
                 sub.stripe_subscription_id = f"sub_mock_{auth.organization.id.hex[:8]}"
                 sub.provider_subscription_id = sub.stripe_subscription_id
             sub.billing_interval = intended_interval
+
+            # Record dev mock transaction in payment ledger
+            mock_tx_stmt = select(PaymentTransaction).where(
+                PaymentTransaction.provider_payment_id == session_id
+            ).limit(1)
+            mock_tx_res = await db.execute(mock_tx_stmt)
+            if not mock_tx_res.scalar_one_or_none():
+                pricing = resolve_trusted_pricing(intended_plan, intended_interval, "inr" if is_razorpay else "usd")
+                dev_tx = PaymentTransaction(
+                    organization_id=auth.organization.id,
+                    provider="razorpay" if is_razorpay else "stripe",
+                    provider_payment_id=session_id,
+                    provider_subscription_id=session_id,
+                    amount=pricing.amount_subunits,
+                    currency="inr" if is_razorpay else "usd",
+                    status="succeeded",
+                    plan=intended_plan,
+                    billing_interval=intended_interval,
+                    metadata_json={"source": "development_mock_session_completion"},
+                )
+                db.add(dev_tx)
+
             await db.commit()
 
         return {
@@ -346,9 +373,11 @@ async def verify_payment(
 async def cancel_subscription(
     cancel_in: CancelSubscriptionRequest = CancelSubscriptionRequest(),
     auth: AuthContext = Depends(get_current_auth_context),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Cancels organization subscription through the active provider (Razorpay or Stripe).
+    Uses explicit async loading strictly scoped to active organization to prevent MissingGreenlet.
     """
     if auth.role not in ("owner", "admin") and not auth.is_admin:
         raise HTTPException(
@@ -356,20 +385,65 @@ async def cancel_subscription(
             detail={"error": {"code": "INSUFFICIENT_PERMISSIONS", "message": "Only organization owners and admins can manage subscriptions."}},
         )
 
-    sync_db = get_sync_db()
-    try:
-        res = cancel_subscription_service(
-            organization=auth.organization,
-            cancel_at_period_end=cancel_in.cancel_at_period_end,
-            sync_db=sync_db,
+    # 1. Explicit async query strictly scoped by organization_id
+    stmt = select(Subscription).where(Subscription.organization_id == auth.organization.id)
+    res = await db.execute(stmt)
+    sub = res.scalar_one_or_none()
+
+    if not sub or sub.plan == "free" or sub.status not in ("active", "trialing", "past_due"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": {"code": "NO_ACTIVE_SUBSCRIPTION", "message": "Organization has no active paid subscription to cancel."}},
         )
+
+    # 2. Idempotency checks: Already canceled or already scheduled
+    if sub.status == "canceled":
         return CancelSubscriptionResponse(
-            status=res["status"],
-            message=res["message"],
-            cancel_at_period_end=res["cancel_at_period_end"],
+            status="canceled",
+            message="Subscription is already canceled.",
+            cancel_at_period_end=False,
         )
-    finally:
-        sync_db.close()
+    if cancel_in.cancel_at_period_end and sub.cancel_at_period_end:
+        return CancelSubscriptionResponse(
+            status="pending_cancellation",
+            message="Subscription cancellation is already scheduled for the end of the billing period.",
+            cancel_at_period_end=True,
+        )
+
+    # 3. Call payment provider adapter with preloaded subscription
+    provider_instance = get_payment_provider(sub.provider)
+    provider_instance.cancel_subscription(sub, cancel_in.cancel_at_period_end)
+
+    # 4. Update local subscription state
+    sub.cancel_at_period_end = cancel_in.cancel_at_period_end
+    if not cancel_in.cancel_at_period_end:
+        sub.status = "canceled"
+        sub.plan = "free"
+
+    # 5. Record audit log
+    audit_log = AuditLog(
+        id=uuid.uuid4(),
+        organization_id=auth.organization.id,
+        user_id=auth.user.id,
+        action="SUBSCRIPTION_CANCEL_REQUESTED",
+        entity_type="SUBSCRIPTION",
+        entity_id=str(sub.id),
+        metadata_json={
+            "provider": sub.provider,
+            "cancel_at_period_end": cancel_in.cancel_at_period_end,
+            "status": sub.status,
+            "plan": sub.plan,
+        },
+    )
+    db.add(audit_log)
+    await db.commit()
+    await db.refresh(sub)
+
+    return CancelSubscriptionResponse(
+        status="pending_cancellation" if cancel_in.cancel_at_period_end else "canceled",
+        message="Subscription cancellation scheduled successfully." if cancel_in.cancel_at_period_end else "Subscription canceled immediately.",
+        cancel_at_period_end=cancel_in.cancel_at_period_end,
+    )
 
 
 @router.post("/portal", response_model=CustomerPortalResponse)
@@ -383,8 +457,68 @@ async def create_customer_portal(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"error": {"code": "INSUFFICIENT_PERMISSIONS", "message": "Only organization owners and admins can manage subscriptions."}},
         )
-    portal_url = create_customer_portal_session(organization=auth.organization)
+
+    stmt = select(Subscription).where(Subscription.organization_id == auth.organization.id)
+    res = await db.execute(stmt)
+    sub = res.scalar_one_or_none()
+
+    portal_url = create_customer_portal_session(organization=auth.organization, subscription=sub)
     return CustomerPortalResponse(portal_url=portal_url)
+
+
+@router.get("/history", response_model=PaymentHistoryResponse)
+@router.get("/transactions", response_model=PaymentHistoryResponse)
+async def get_payment_history(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    auth: AuthContext = Depends(get_current_auth_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieves authoritative payment transaction history for the authenticated organization.
+    Strictly tenant-isolated: only returns records matching active organization_id.
+    """
+    count_stmt = select(func.count(PaymentTransaction.id)).where(
+        PaymentTransaction.organization_id == auth.organization.id
+    )
+    count_res = await db.execute(count_stmt)
+    total = count_res.scalar() or 0
+
+    stmt = (
+        select(PaymentTransaction)
+        .where(PaymentTransaction.organization_id == auth.organization.id)
+        .order_by(PaymentTransaction.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    res = await db.execute(stmt)
+    transactions = res.scalars().all()
+
+    items = []
+    for tx in transactions:
+        meta = tx.metadata_json or {}
+        invoice_url = meta.get("hosted_invoice_url") or meta.get("invoice_pdf") or meta.get("invoice_url")
+        receipt_url = meta.get("receipt_url") or meta.get("short_url")
+
+        items.append(
+            PaymentTransactionItem(
+                id=tx.id,
+                created_at=tx.created_at,
+                provider=tx.provider,
+                provider_payment_id=tx.provider_payment_id,
+                provider_subscription_id=tx.provider_subscription_id,
+                amount=tx.amount,
+                currency=tx.currency,
+                status=tx.status,
+                plan=tx.plan,
+                billing_interval=tx.billing_interval,
+                payment_method=tx.payment_method,
+                invoice_url=invoice_url,
+                receipt_url=receipt_url,
+            )
+        )
+
+    return PaymentHistoryResponse(items=items, total=total)
 
 
 @router.post("/webhooks/razorpay")

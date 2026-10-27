@@ -23,6 +23,8 @@ function BillingSuccessContent() {
   const { user, refreshProfile, isAuthenticated, loading: authLoading } = useAuth();
 
   const sessionId = searchParams.get("session_id");
+  const providerParam = searchParams.get("provider");
+  const providerLabel = providerParam === "razorpay" ? "Razorpay" : providerParam === "stripe" ? "Stripe" : "our payment gateway";
 
   const [status, setStatus] = useState<"verifying" | "active" | "delayed" | "failed">("verifying");
   const [activePlan, setActivePlan] = useState<string>("basic");
@@ -166,7 +168,7 @@ function BillingSuccessContent() {
                 Payment Received • Activation Processing
               </h1>
               <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                Your payment was received by Stripe. The backend synchronization webhook is taking slightly longer than usual to complete.
+                Your payment was received by {providerLabel}. The backend synchronization is taking slightly longer than usual to complete.
               </p>
             </div>
 

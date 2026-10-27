@@ -254,7 +254,7 @@ export default function LandingPage() {
                 aria-label="Website Security Scanner Form"
               >
                 <div className="flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-2.5 bg-white rounded-2xl shadow-xl shadow-sky-950/5 border border-slate-200/90 focus-within:border-sky-500 focus-within:ring-4 focus-within:ring-sky-500/15 transition-all">
-                  <div className="flex-1 flex items-center px-3.5 w-full">
+                  <div className="flex-1 flex items-center px-3.5 w-full min-w-0">
                     <span className="text-slate-400 font-medium text-sm select-none mr-1.5 hidden sm:inline">
                       https://
                     </span>
@@ -268,7 +268,7 @@ export default function LandingPage() {
                       value={domainInput}
                       onChange={(e) => setDomainInput(e.target.value)}
                       placeholder="yourwebsite.com"
-                      className="w-full bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none text-base py-2.5 font-medium"
+                      className="w-full bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none text-base py-2.5 font-medium min-w-0"
                       disabled={isSubmitting}
                       autoComplete="url"
                       aria-invalid={errorMessage ? "true" : "false"}
@@ -277,7 +277,7 @@ export default function LandingPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto px-7 py-3.5 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-bold rounded-xl text-base shadow-md shadow-sky-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer shrink-0"
+                    className="w-full sm:w-auto min-h-[48px] px-7 py-3.5 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-bold rounded-xl text-base shadow-md shadow-sky-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer shrink-0"
                   >
                     {isSubmitting ? (
                       <>
@@ -296,14 +296,14 @@ export default function LandingPage() {
                 {errorMessage && (
                   <p
                     role="alert"
-                    className="text-sm font-semibold text-red-700 mt-3 text-left bg-red-50 p-3 rounded-xl border border-red-200 shadow-2xs"
+                    className="text-sm font-semibold text-red-700 mt-3 text-left bg-red-50 p-3 rounded-xl border border-red-200 shadow-2xs break-words"
                   >
                     {errorMessage}
                   </p>
                 )}
 
                 {/* Hero Trust Microcopy — Exactly 3 items in a single horizontal row on desktop */}
-                <div className="animate-hero-trust flex flex-wrap sm:flex-nowrap items-center justify-center gap-x-7 sm:gap-x-8 gap-y-2 mt-3.5 sm:mt-4 text-xs sm:text-sm font-medium text-slate-500 w-fit mx-auto">
+                <div className="animate-hero-trust flex flex-wrap sm:flex-nowrap items-center justify-center gap-x-6 sm:gap-x-8 gap-y-2 mt-3.5 sm:mt-4 text-xs sm:text-sm font-medium text-slate-500 w-full max-w-xl mx-auto">
                   <span className="flex items-center gap-1.5 whitespace-nowrap">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     Real automated security checks
@@ -427,9 +427,9 @@ export default function LandingPage() {
                       <div className="w-3 h-3 rounded-full bg-amber-400" />
                       <div className="w-3 h-3 rounded-full bg-emerald-400" />
                     </div>
-                    <div className="text-xs font-mono text-slate-600 bg-white px-4 py-1 rounded-md border border-slate-200 flex items-center gap-1.5">
-                      <Lock className="w-3 h-3 text-emerald-600" />
-                      <span>https://example-saas.com</span>
+                    <div className="text-xs font-mono text-slate-600 bg-white px-2.5 sm:px-4 py-1 rounded-md border border-slate-200 flex items-center gap-1.5 min-w-0 max-w-[150px] sm:max-w-none">
+                      <Lock className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span className="truncate">https://example-saas.com</span>
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded">
                       Demo

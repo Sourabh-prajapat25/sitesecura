@@ -125,7 +125,12 @@ class RazorpayPaymentProvider(PaymentProvider):
                 detail={"error": {"code": "RAZORPAY_SESSION_FAILED", "message": f"Failed to initiate Razorpay subscription: {str(e)}"}},
             )
 
-    def create_customer_portal_session(self, organization: Organization, return_url: Optional[str] = None) -> str:
+    def create_customer_portal_session(
+        self,
+        organization: Organization,
+        return_url: Optional[str] = None,
+        subscription: Optional[Subscription] = None,
+    ) -> str:
         """
         Razorpay does not host an external billing portal.
         Redirects users to the in-app subscription and billing settings.
@@ -152,7 +157,15 @@ class RazorpayPaymentProvider(PaymentProvider):
             or settings.RAZORPAY_KEY_SECRET.startswith("rzp_test_placeholder")
         )
 
-        if is_mock:
+        client = self._client
+        if client is None and settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET:
+            try:
+                client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            except Exception as e:
+                logger.warning(f"Failed to initialize Razorpay Client: {e}")
+                client = None
+
+        if is_mock or client is None:
             subscription.cancel_at_period_end = cancel_at_period_end
             if not cancel_at_period_end:
                 subscription.status = "canceled"
@@ -161,7 +174,7 @@ class RazorpayPaymentProvider(PaymentProvider):
 
         try:
             cancel_data = {"cancel_at_cycle_end": 1 if cancel_at_period_end else 0}
-            self._client.subscription.cancel(sub_id, cancel_data)
+            client.subscription.cancel(sub_id, cancel_data)
             subscription.cancel_at_period_end = cancel_at_period_end
             if not cancel_at_period_end:
                 subscription.status = "canceled"

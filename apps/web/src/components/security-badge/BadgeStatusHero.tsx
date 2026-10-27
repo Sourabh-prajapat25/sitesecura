@@ -77,6 +77,9 @@ export function BadgeStatusHero({
       ? eligibility.score
       : null;
 
+  const minRequiredScore = eligibility?.policy?.minimum_score ?? 70;
+  const isScoreBelowMin = scoreValue !== null && scoreValue < minRequiredScore;
+
   return (
     <div className="bg-white dark:bg-[#111C2E] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 sm:p-8 space-y-6">
       {/* Top Status Header */}
@@ -132,7 +135,8 @@ export function BadgeStatusHero({
           {!isVerified && isEligible && "Your Website Qualifies for SiteSecura Verified"}
           {isExpired && "SiteSecura Verification Expired"}
           {isRevoked && "SiteSecura Verification Revoked"}
-          {isIneligible && "Website Does Not Meet Active Verification Policy"}
+          {isIneligible && isScoreBelowMin && `Security Score Below Required Threshold (${minRequiredScore}/100)`}
+          {isIneligible && !isScoreBelowMin && "Website Does Not Meet Verification Requirements"}
           {isNotConfigured && "Run an Assessment to Determine Eligibility"}
         </h2>
 
@@ -147,7 +151,11 @@ export function BadgeStatusHero({
           {isRevoked &&
             "The SiteSecura verification for this website was revoked by an administrator and is no longer active. You can re-check eligibility or re-verify at any time."}
           {isIneligible &&
-            "Your latest completed scan did not meet one or more policy requirements. Review the specific reasons below, address any findings, and rescan."}
+            isScoreBelowMin &&
+            `Your latest completed scan achieved a security score of ${scoreValue}/100. A minimum score of ${minRequiredScore}/100 is required to qualify for the SiteSecura Verified badge. Resolve security findings to raise your score.`}
+          {isIneligible &&
+            !isScoreBelowMin &&
+            "Your latest completed scan did not meet one or more verification criteria. Review the specific reasons below, address any findings, and rescan."}
           {isNotConfigured &&
             "Run a completed SiteSecura defensive scan before requesting verification. Verification requires an authoritative completed scan within the last 30 days."}
         </p>
@@ -157,12 +165,28 @@ export function BadgeStatusHero({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
         {/* Metric 1: Security Score */}
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Lock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-            <span>Security Score</span>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+              <span>Security Score</span>
+            </div>
+            {scoreValue !== null && (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  scoreValue >= minRequiredScore
+                    ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                    : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                }`}
+              >
+                {scoreValue >= minRequiredScore ? "Qualifies" : "Below Min."}
+              </span>
+            )}
           </div>
           <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
             {scoreValue !== null ? `${scoreValue} / 100` : "Score unavailable"}
+          </div>
+          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            Min. required: {minRequiredScore} / 100
           </div>
           {badgeStatus?.risk_level && (
             <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">

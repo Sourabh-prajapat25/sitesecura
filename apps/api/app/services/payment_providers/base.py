@@ -73,7 +73,12 @@ class PaymentProvider(ABC):
         pass
 
     @abstractmethod
-    def create_customer_portal_session(self, organization: Organization, return_url: Optional[str] = None) -> str:
+    def create_customer_portal_session(
+        self,
+        organization: Organization,
+        return_url: Optional[str] = None,
+        subscription: Optional[Subscription] = None,
+    ) -> str:
         """Returns URL to manage payment method / subscription."""
         pass
 

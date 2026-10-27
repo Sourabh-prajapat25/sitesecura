@@ -502,7 +502,7 @@ export function PricingContent() {
                       {actionLoading === plan.id ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Connecting to Stripe...</span>
+                          <span>Connecting to {currency === "inr" ? "Razorpay" : "Stripe"}...</span>
                         </>
                       ) : (
                         <>
@@ -580,7 +580,7 @@ export function PricingContent() {
               <div>
                 <h3 className="text-xs font-bold text-slate-900">Secure Payments</h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Processed via Stripe. No raw credit cards stored.
+                  Processed via {currency === "inr" ? "Razorpay" : "Stripe"}. No raw card data stored.
                 </p>
               </div>
             </div>

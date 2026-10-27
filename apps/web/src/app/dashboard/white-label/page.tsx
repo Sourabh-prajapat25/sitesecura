@@ -594,6 +594,7 @@ export default function WhiteLabelPage() {
       <UpgradeModal
         isOpen={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}
+        contextType="white_label"
         featureName="Agency White-Labeling"
         recommendedPlan="agency"
       />
