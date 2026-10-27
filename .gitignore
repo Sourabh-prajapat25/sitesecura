@@ -18,6 +18,14 @@ ENV/
 !.env.example
 !.env.production.example
 
+
+# Private local database backups and scratch files
+/scanly_old_backup.dump
+/scanly_old_backup_v2.dump
+/scratch_prompt.txt
+*.dump
+
+
 # Build artifacts
 .next/
 dist/
